@@ -43,6 +43,12 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Change log
 
+### 2026-10-21 — Local environment template
+
+- Created ignored `studio/.env.local` with all currently consumed application settings: blank `MONGODB_URI` for the owner to fill and `MONGODB_DB_NAME=educational_video_dev`.
+- Provider/auth settings will be added when their features define and consume them. No credentials copied from the POC.
+- Verified Git excludes the local environment file. Only this status update is committed; no application code changed or database connection attempted.
+
 ### 2026-10-21 — F02 database foundation
 
 - Added pinned MongoDB driver, server-only connection pooling, explicit configuration checks, safe connection failures and snapshot/majority transactions.
