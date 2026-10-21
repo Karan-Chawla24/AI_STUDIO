@@ -1,0 +1,31 @@
+{
+  "selectedDirection": "MINERAL_SIGNAL",
+  "date": "2026-10-19",
+  "projectId": "4650166871878780934",
+  "projectUrl": "https://stitch.withgoogle.com/projects/4650166871878780934",
+  "designSystem": "assets/10932773132637887051",
+  "deletedRejectedProjects": [
+    "13092516170125747294",
+    "399289132525271548"
+  ],
+  "brandBoard": {
+    "screenId": "64bde5183c494b79ba130796afad8259",
+    "title": "Mineral Signal — Brand guidelines v1.0",
+    "html": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2U1MzBiZDg5NmExZDQ3M2RiYzczMjUxOWExMzBlZjRjEgsSBxDDyMvxuQ0YAZIBIwoKcHJvamVjdF9pZBIVQhM0NjUwMTY2ODcxODc4NzgwOTM0&filename=&opi=96797242",
+    "screenshot": "https://lh3.googleusercontent.com/aida/AEtjO1XYdh_qxfRewe2jdH2--eFWowpoI0yD8KQd7wWANwsGqeVMdm90ijW-rGAQvW_BTfJKEqlPsZA-OSDQK8JoLxN2vqsaKzLEmq7xF3KKk7wiQlezlmsf4J5QfN5xo1-gjho3L5bEiHPRCDa19-9oQR-XOEeo6C5XkbFbvw3_OX7M351tbfr4GHvTRXOM29_p27G_IVGVGqTw9g1zI4Q0R6JRjf3GGW6pBFf-eioQ50uABmuWuwgz1L504Q"
+  },
+  "homepage": {
+    "screenId": "49c838e326b5490d9c2eaf1e58575692",
+    "title": "Homepage — Mineral Signal",
+    "html": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2MyOTQyNmVjODQwYjQ2YTc4ZTRiM2ZjMzZiNzg1ODQ1EgsSBxDDyMvxuQ0YAZIBIwoKcHJvamVjdF9pZBIVQhM0NjUwMTY2ODcxODc4NzgwOTM0&filename=&opi=96797242",
+    "screenshot": "https://lh3.googleusercontent.com/aida/AEtjO1X4ySkqg-GzxkIiYvxhEE7ioSMdUCGeEdu2rZ6h3rKb4dwTxpDNAu3a4F9twjAkz-6iySEcBOhm7DQf1p9nJGHbo2xp2ooK-I8Wdy0AdyJUxU92AU4gb4Kc735TEh7Oc8V0qNIRGaZ_3IiT3Q3ON3OyNb5is-Z_rr7njqF5l78fyv7XtQ5teeHUaGszMtM0npVgujYKT1pNmGUX-P9mE8FV9KZQIL0tTolGttJSxS0Dz6jLfuE9qe744Iw"
+  },
+  "verification": {
+    "claimsRemoved": true,
+    "inlineJavaScriptSyntax": "PASS",
+    "duplicateIds": false,
+    "animation": "Finite Web Animations API packet demonstration,4500ms; pause/replay; reduced-motion disables autoplay",
+    "browserInteractionTesting": "Not completed; local preview connection failed",
+    "scope": "Design prototype,not deployed application"
+  }
+}

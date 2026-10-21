@@ -1,0 +1,45 @@
+{
+  "checkedAt": "2026-10-20T11:29:34.932Z",
+  "routes": [
+    {
+      "route": "/home",
+      "status": 200,
+      "active": "/home"
+    },
+    {
+      "route": "/projects",
+      "status": 200,
+      "active": "/projects"
+    },
+    {
+      "route": "/projects/new",
+      "status": 200,
+      "active": "/projects/new"
+    },
+    {
+      "route": "/scheduled",
+      "status": 200,
+      "active": "/scheduled"
+    },
+    {
+      "route": "/connections",
+      "status": 200,
+      "active": "/connections"
+    },
+    {
+      "route": "/settings",
+      "status": 200,
+      "active": "/settings"
+    }
+  ],
+  "rootRedirect": "passed",
+  "keyboardSkipLink": "passed",
+  "mobileWidths": [
+    390,
+    320
+  ],
+  "mobileNavigation": "passed",
+  "pageOverflow": "none",
+  "notFound": 404,
+  "browserErrors": []
+}

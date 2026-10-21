@@ -1,0 +1,227 @@
+{
+  "projectId": "4650166871878780934",
+  "designSystem": "assets/10932773132637887051",
+  "status": "GENERATION_PLANNED",
+  "groups": [
+    {
+      "key": "01-auth",
+      "device": "DESKTOP",
+      "screens": [
+        [
+          "01 — Sign in",
+          "Public /sign-in. Email,password,show password,remember me,forgot password,sign-in primary,create account link. Inline invalid credentials and submitting variants below main composition. No Google OAuth or billing."
+        ],
+        [
+          "02 — Create account",
+          "Public /sign-up. Name,email,password12–128characters with readable guidance and visibility control; submit and sign-in link. Generic registration error,required fields,loading. No invented terms acceptance policy or social login."
+        ],
+        [
+          "03 — Verify email",
+          "/verify-email. Check your email,masked illustrative email,resend cooldown,change account/signout. Clearly separate verified success and expired-link states in small state panels; no fake already-sent real message."
+        ],
+        [
+          "04 — Password recovery",
+          "Two clearly separated finished page artboards for /forgot-password and /reset-password in this screen: email request and generic confirmation, new password/confirm,expired link,reset success. Functional-style forms not prose documentation. No sensitive real data."
+        ]
+      ]
+    },
+    {
+      "key": "02-library",
+      "device": "DESKTOP",
+      "screens": [
+        [
+          "05 — Home dashboard",
+          "Signed-in Home. Primary Create video; recent project cards with thumbnails,title,updated time,actual duration only if ready; separate creation/publishing status. Upcoming schedules and small attention section. Example Internet75sready; Wi-Fi draft; APIs generating. No revenue/follower analytics,credits,team workspace."
+        ],
+        [
+          "06 — Projects library",
+          "Projects navigation. Search by title,creation and publication filters,sort recent/title/created. Project grid/list,load more rather than page numbers. Item actions Open/Continue/Preview/Download/Publish/Schedule/Delete based on status. Readable captions and output thumbnails."
+        ],
+        [
+          "07 — First project and library states",
+          "Full first-run Home empty state with Create your first video and Brainstorm a topic; companion filtered-no-results,loading skeleton,failed-load withRetry panels. Preserve shell. No mandatory onboarding quiz or setup blocking creation."
+        ],
+        [
+          "08 — Project deletion and library actions",
+          "Projects screen with focused confirmation modal 'Delete this project and its generated media?' describes cancel future schedules and removes generated media; already-published Instagram posts remain. Clear Cancel/destructiveDelete. Adjacent variants deleting,complete,cleanup waiting. Rename dialog and item overflow menu specimen. No automatic undo promise."
+        ]
+      ]
+    },
+    {
+      "key": "03-plan",
+      "device": "DESKTOP",
+      "screens": [
+        [
+          "09 — Plan a video",
+          "Create Video workspace Plan→Storyboard→Generate→Publish header,Plan active. Topic textarea max5000,optional audience/niche,targetduration60–90(default75),Refine idea,Brainstorm ideas,Continue to storyboard. Autosaved indicator; required/topic-too-long/unsafe-content variants inline. Example How does the internet work."
+        ],
+        [
+          "10 — Brainstorm ideas",
+          "Plan brainstorming view with broad topic,audience,niche optional and five numbered idea proposals. Select one,edit/refine,Use this idea. Generating skeleton and unavailable provider retained-draft banner. No automatic overwrite or generated video yet."
+        ],
+        [
+          "11 — Refine and select idea",
+          "Side-by-side original broad topic and proposed narrower idea,why it fits60–90sec. Accept suggestion / Keep mine / regenerate with optional guidance. Selected idea field editable; no factual-certification or sources. Proposal conflict variant: project changed,review latest; never force overwrite."
+        ],
+        [
+          "12 — Storyboard overview",
+          "Storyboard active workspace.8 ordered scene cards with estimated durations,narration excerpt,visual plan,small vector thumbnail and Edit/Regenerate. Rendered title/hook. Autosave; total estimate75s. Scene count fixed by generated storyboard,no add/delete/reorder or timeline editor. Prepare visuals explicit action after manual edits; Approval separate."
+        ]
+      ]
+    },
+    {
+      "key": "04-editor",
+      "device": "DESKTOP",
+      "screens": [
+        [
+          "13 — Scene editor",
+          "Storyboard with Scene02 selected,editor main column+narrow9:16 preview. Narration,visual description,motion description,supported scene pattern fields. Advanced pronunciation section Speech-friendly text AUTO or override,distinct from displayed narration. Caption emphasis keywords. Read-only duration estimate8sec. Autosave Saving/Saved;Prepare visuals action. No sliders for frame timestamps."
+        ],
+        [
+          "14 — Scene regeneration proposal",
+          "Review replacement for Scene02 side-by-side current/proposed narration+visual. Scope Narration/Visuals/Both,guidance,generate. Accept replacement or dismiss; others unchanged. Small explicit full-storyboard regeneration confirmation variant warns manual edits replaced only after review. No silent merge."
+        ],
+        [
+          "15 — Storyboard approval",
+          "Readable final8-scene summary,VALID visuals status,voice selected,captionstyle,music,estimatedduration. Clear 'Review content for accuracy' reminder,Approve storyboard primary,Back to edit. Content approval for current version,not automated factual verification. Show approved ready-to-generate state and changed-after-approval warning."
+        ],
+        [
+          "16 — Editor conflicts and validation",
+          "Distinct finished editor-state panels: (a) edits saved,visuals need preparation withPrepare visuals; (b) preparing visuals pending; (c) invalid/unsupported visual with specific scene edit action; (d) multi-tab conflict preserving Your edits vs Latest version,no overwrite; (e) save failed/offline withlocal unsaved state anddisabledapproval. Use real UI overlays,banners,not only prose."
+        ]
+      ]
+    },
+    {
+      "key": "05-generation",
+      "device": "DESKTOP",
+      "screens": [
+        [
+          "17 — Generate settings",
+          "Generate step,current approved storyboard summary. Curated Indian male/female radio cards with sample-play control; unavailable voice state. Mandatory captions Clean/Bold/Highlighted; optional music Off/catalog options. Generate video primary,output60–90sec1080×1920. Changing settings requires reapproval before action; explain. No API keys,models,credits,advanced audio sliders."
+        ],
+        [
+          "18 — Generation progress",
+          "Active generation stage list Preparing narration→Aligning captions→Rendering visuals→Checking video. Currentstage/completedscenes,nofakepercentageorETA. Partial scene progress,Cancel generation confirmation,cancel pending. 'You can leave this page; your progress is saved.' Return to projects. One active job notice."
+        ],
+        [
+          "19 — Generation recovery",
+          "Failed scene narration with successful scenes preserved;Retry failed work if safe,Edit scene,View details safe request ID. Separate service unavailable and daily limit reset-time variants,no payment/credits UI. Cancelled job preserved. Unsafe-to-retry state says checking previous attempt and disablesRetry. No raw vendor billing error."
+        ],
+        [
+          "20 — Duration correction",
+          "Actual duration102s outside60–90; output blocked. Compare existing narration with proposed concise repair,scene changes,total estimate. Review changes,Apply revision,thenApprove and regenerate. Preserve old result; no automatic speech speed slider or automatic rewrite approval. Include acceptable75s state as small reference."
+        ]
+      ]
+    },
+    {
+      "key": "06-preview",
+      "device": "DESKTOP",
+      "screens": [
+        [
+          "21 — Video preview",
+          "Ready75second9:16 video player with play,pause,volume,caption display,safearea. Download MP4,Download captions,Continue to publish,Back to storyboard. Version label,actualduration,thumbnail. No uncompressed60fpsclaims. State controls are design prototypes with illustrative sample,not actual generated audio."
+        ],
+        [
+          "22 — Version history and stale video",
+          "Current draft vs previous ready render history list,date,duration,content change markers. Selected old video downloadable but Stale banner andPublish disabled withRegenerate current version action. Published previous version permalink history separate. No ability to restore or merge versions unsupported API."
+        ],
+        [
+          "23 — Media delivery states",
+          "Preview screen with expired playback link Refresh preview; artifact not available Retry/load; downloading feedback;missing thumbnail fallback; previewerror keepsactions truthful. Separate owner-safeNot found state doesn't reveal another user. These are rendered UI states with small context labels,not new marketing page."
+        ],
+        [
+          "24 — Mobile project and storyboard review",
+          "MOBILE390px screen with two separately framed mobile artboards: Projects library and Storyboard review. Compact nav drawer/menu,largeprojectthumbs,scene cards,readable narration andreview/approve actions. Desktop editing better note only for complex layout,review allowed. No tiny desktop controls."
+        ]
+      ]
+    },
+    {
+      "key": "07-social",
+      "device": "DESKTOP",
+      "screens": [
+        [
+          "25 — Instagram connections",
+          "Connections page,current one Instagram professional account. Main disconnectedConnectInstagram state plus connected account card @example_studio,capability,last checked,Reconnect/Disconnect actions. Explain eligibleprofessionalaccount. No followers/engagementanalytics,APIkeys,multiaccountadd. Disconnect confirmation warns future schedules cancelled."
+        ],
+        [
+          "26 — Connection callback and recovery",
+          "Distinct complete UI states in application shell: connecting/return from Instagram,connected success,ineligible personal account,denied access,expired connection,reconnect account mismatch. Reconnect retains destination identity; no silent replacement. Each state has specific next action. No real OAuth interactions or token fields."
+        ],
+        [
+          "27 — Publish composer",
+          "Publish workspace with current75sapproved video left and destinationaccount,right caption textarea2200count,Generatecaption suggestion andeditable draft,Publish now andSchedule options. Caption suggestion reviewed beforeapply. Preflight checklist verifiescurrentrender/account;not generic security checklist. Publish button onlywhenready. No custom cover picker or auto best-time."
+        ],
+        [
+          "28 — Publish outcomes",
+          "Separate finished panels for preparing/processing,submitted withcancel disabled,successView on Instagram,definitefailure safeRetry,and UNKNOWN outcome. Unknown text: 'We’re checking whether your video was published. Don’t submit it again yet.' Check status;Publish again disabled. Intentional repost confirmation references priorpost. No blindretry aftertimeout."
+        ]
+      ]
+    },
+    {
+      "key": "08-schedule",
+      "device": "DESKTOP",
+      "screens": [
+        [
+          "29 — Schedule a video",
+          "Schedule modal/page overpublishworkspace. Currentrenderthumbnail,account,caption,date,time,IANA timezoneAsia/Kolkata,currentoffset+05:30 andhumanconfirmedtime. PrimarySchedule video. Min2min/max90days guidance onlywhenneeded. Invalidpasttime andDST ambiguous/nonexistent states. No predictive best-time or bulkcampaigns."
+        ],
+        [
+          "30 — Scheduled posts",
+          "Scheduled navigation. List-first upcoming schedule rows withthumbnail,title,date/localtime/timezone,status/account andEdit/Cancel. Optionalcalendarview visual permitted same data; nounsupportedbulkreschedule. Attention group stalecontent/expiredaccount;publishedhistory. Empty schedules state. Honest sampledates lateOct2026."
+        ],
+        [
+          "31 — Schedule details and edit",
+          "Selectedschedule detail with pinnedrender/caption/account,time+timezone,Edit date/time/caption,Cancel schedule confirmation. Explicit new currentrender selection andapproval recheck to fixcontentchange. Executing state locks edits/cancel;offersView publishingstatus. Already published external post notdeleted."
+        ],
+        [
+          "32 — Scheduling attention states",
+          "Finished state panels: missed schedule beyondgrace requiresnewfuturetime;expiredaccount reconnect thenexplicitreschedule;contentchanged regenerate/currentrender andreschedule;invalidDST selection;unknownpublish outcome disablesrescheduling untilresolved. Specific actions for each; noautomaticlatepost on reconnect."
+        ]
+      ]
+    },
+    {
+      "key": "09-account",
+      "device": "DESKTOP",
+      "screens": [
+        [
+          "33 — Profile and preferences",
+          "Settings page. Displayname,emailverified/read-onlyemail,timezone,defaultIndianvoice,Save preferences. Password reset entry,signout. Preference changes don't mutate existing videos. No billing/team/APIkey/model settings. Inline success/error andunsaved state."
+        ],
+        [
+          "34 — Account deletion",
+          "Settings danger area andexplicitDelete my account modal;recent-auth signinrequired state;shows removalofprojects/media/cancelledfuture schedules,externalpublishedpostsremain. CleardestructiveconfirmandCancel. Accepteddeletion signed-outscreen,cleanupattention generic. No promise instantbackup erasure orundo."
+        ],
+        [
+          "35 — Global recovery states",
+          "Fullpage404resourceunavailable;serviceerrorwithrequestID/Retry;sessionexpiredsign-in preservingdraft note;networkoffline/banner;verifiedemailrequired dialog;limitedaccesswhiledeleting. Design actualscreens/overlays asclearstateboard. No rawHTTPcodes asheadline,secretdata,nonexistent supportchat."
+        ],
+        [
+          "36 — Privacy and terms page templates",
+          "Two separate publiclegalpage layouts within one designboard,consistenthomepageheader/footer,readablemeasure,sectionnavigation,updateddate placeholder. Clearly visibly mark 'Draft structure — legal content pending review'. Section headings only + neutral placeholders,NO fabricatedprivacyguarantees,legalterms,retentionclaims,contactaddresses. Notpublish-readylegaladvice."
+        ]
+      ]
+    },
+    {
+      "key": "10-mobile",
+      "device": "MOBILE",
+      "screens": [
+        [
+          "37 — Mobile sign in",
+          "390px mobile signin,propervisiblelabels,16pxinputs,44pxtouch,passwordvisibility,forgotpassword/createaccountlinks;no truncated brand orhorizontaloverflow. Include error andkeyboard-safe layout specimen."
+        ],
+        [
+          "38 — Mobile home and plan",
+          "390px mobileHome withprimaryCreatevideo,recentprojects,status/attention; second clearly separatedmobilePlanartboard withtopic,audienceoptional,brainstormandcontinue. Compactdrawer navigation sameIA."
+        ],
+        [
+          "39 — Mobile video preview",
+          "390px mobilepreview9:16frame,playcontrols andaccessiblebottomactionsDownload/Publish,actual75sec,version. Staleview variant disablepublishandprovideRegenerate. Respectsafeareabottom."
+        ],
+        [
+          "40 — Mobile publish and schedule",
+          "390px two mobileartboards: publishcomposer(video thumb,account,caption,count,Publish/Schedule) andscheduleform(date,time,zone,confirmation). Bottomsheetkeyboard-safe,44pxtargets,nooverflow,includeunknownpublishingwarning variant."
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+node_modules/
+.next/
+*.tsbuildinfo
+.env*
+!.env.example
+*.log
+internet-poc/.generation-cache/
+internet-poc/out/
+
+# Local reference material and generated design/provider exports
+/sources/
+/internet-poc/
+/design-exports/
+/*.zip
+/docs/stitch-results/
+/docs/stitch-audit-output.txt
+.codex/
+.agents/
+.aws/
+*.pem
+*.key

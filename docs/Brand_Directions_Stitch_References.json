@@ -1,0 +1,31 @@
+{
+  "createdAt": "2026-10-19",
+  "status": "MINERAL_SIGNAL_SELECTED",
+  "screens": [
+    {
+      "direction": "a",
+      "projectId": "13092516170125747294",
+      "screenId": "e6065c0a7d654ed0b9582f6f4db2c17d",
+      "title": "Brand Exploration • 01 — Cobalt Paper",
+      "status": "REJECTED_PROJECT_DELETED"
+    },
+    {
+      "direction": "b",
+      "projectId": "4650166871878780934",
+      "screenId": "cf78061a029549a0b0f99ab50a70bf5f",
+      "title": "Brand exploration • 01 — Mineral Signal",
+      "screenshot": "https://lh3.googleusercontent.com/aida/AEtjO1XvDhZW2lPohp9JGzAsPEKzO9wfTlH_de9y8uiXdVq9MMUye77FYw4M5tAtaOiZQR5Zt4TfKm7o83IaF5VT0hs9OmOP0I8KBV9705qFBkWst50FqAfDbL5aFuiKC4Ju4v1LSsTMgwbiRoWUvGZdT3ZH1SpoChOqnInQ0qAUHKda9SUjRXwvxSXg5CzzbiUIfIZT94Vk66mBQwvMqviAP3pM_dOMocCFGD7TPFCZFu8ehmENCAtNUJtkrpQ",
+      "html": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzE5MzZkOTk3NzY1OTQxYWQ5ZjJiZDQ4Y2NkMzNkYTVjEgsSBxDDyMvxuQ0YAZIBIwoKcHJvamVjdF9pZBIVQhM0NjUwMTY2ODcxODc4NzgwOTM0&filename=&opi=96797242",
+      "status": "SELECTED"
+    },
+    {
+      "direction": "c",
+      "projectId": "399289132525271548",
+      "screenId": "a2ac779f72294af8a62ae2a7b4f6add0",
+      "title": "Brand exploration • 01 — Direction C",
+      "status": "REJECTED_PROJECT_DELETED"
+    }
+  ],
+  "selectedDirection": "b",
+  "designSystemAsset": "assets/10932773132637887051"
+}
