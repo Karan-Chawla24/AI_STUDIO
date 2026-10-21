@@ -31,7 +31,13 @@ npm start
 
 These pages are explicitly labelled development previews. They are public, have no user session or database, and contain no functioning generation/publishing actions. `/` redirects to `/home` until the public homepage milestone.
 
-Future domain modules and server-only adapters will be introduced alongside their features, not as empty service implementations. Better Auth, MongoDB, Inngest, R2 and the video pipeline are not connected yet.
+MongoDB connection, transaction and migration infrastructure now lives in `src/server/db/`. A persistent database is not configured yet. Better Auth, Inngest, R2 and the video pipeline remain future features.
+
+## Database tooling
+
+See [F02 database setup and recovery](../docs/implementation/F02_Database_Foundation.md). Copy `.env.example` to `.env.local` and configure your own replica-set/Atlas database before running `npm run db:check`, `npm run db:migrate` and `npm run db:verify`. Migrations are explicit and never run at startup.
+
+`npm run test:db` uses an isolated temporary MongoDB replica set, without your credentials. The first run downloads a MongoDB binary. Server modules use the `server-only` guard; CLI/test commands supply the React server condition so they can load these modules outside Next.js.
 
 ## Design and contracts
 

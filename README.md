@@ -6,7 +6,7 @@ An educational video application using the Mineral Signal design system.
 - **Implementation source of truth:** [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
 - **Architecture and contracts:** [`docs/`](docs/)
 
-The initial scaffold is complete. Authentication, persistence, generation and publishing remain planned; current pages are labelled development previews.
+The initial scaffold and locally verified database foundation are complete. Authentication, saved projects, generation and publishing remain planned; current pages are labelled development previews. Persistent database credentials are not configured. See [database setup](docs/implementation/F02_Database_Foundation.md).
 
 Use Node.js 24 LTS. From `studio/`, run `npm ci` and `npm run dev`. Run `npm run check` and `npm run build` for validation.
 

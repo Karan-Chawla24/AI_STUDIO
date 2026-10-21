@@ -6,7 +6,7 @@ This is the source of truth for implementation progress. The PRD defines product
 
 ## Current milestone
 
-**F01 — Application scaffold: complete.** Next: F02 database foundation.
+**F01 and F02 complete.** Next: F03 authentication. Persistent development database configuration is still needed.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -17,7 +17,7 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | ID | Feature | Acceptance check | Status |
 | --- | --- | --- | --- |
 | F01 | Next.js/TypeScript scaffold, Mineral Signal tokens, responsive app shell | Install, typecheck, lint, production build and route smoke checks pass | Complete |
-| F02 | MongoDB connection and migration/index tooling | Configuration validated; connection failures handled; required indexes verified against a test database | Planned |
+| F02 | MongoDB connection and migration/index tooling | Configuration validated; connection failures handled; bootstrap indexes verified against a test database; domain indexes follow owning features | Complete (local integration verified) |
 | F03 | Better Auth email/password and sessions | Sign-up/sign-in/sign-out work; protected pages/APIs enforce session ownership | Planned |
 | F04 | Email verification and password recovery | Expiring links, resend limits and generic recovery responses tested | Planned |
 | F05 | Project creation and persistence | User can create/read a draft; foreign-owned IDs return 404 | Planned |
@@ -42,6 +42,15 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-21 — F02 database foundation
+
+- Added pinned MongoDB driver, server-only connection pooling, explicit configuration checks, safe connection failures and snapshot/majority transactions.
+- Added `db:check`, `db:status`, `db:migrate`, `db:verify` and isolated `test:db` commands.
+- Added strict operational migration schema, checksums, single-writer lock, idempotent bootstrap and drift verification. Auth/domain collections and indexes are deferred to their owning features; this is the prelude to the DB design's M001, not a claim to implement all planned migrations.
+- Added setup and recovery documentation in `docs/implementation/F02_Database_Foundation.md`; updated environment example and README.
+- No UI changes or persistent database configuration. Local tests use a temporary MongoDB 8.2.6 replica set, never `.env.local` or Atlas credentials.
+- Verification: all 10 database tests passed against MongoDB 8.2.6, including CLI commands, validation, locking, drift detection, rollback/commit and pool recovery. TypeScript, ESLint and production build passed with no database environment configured. Missing configuration exits with a sanitized error. Git whitespace check passed.
 
 ### 2026-10-21 — Development branch workflow
 
@@ -75,6 +84,16 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Verification
 
+### F02 — 2026-10-21
+
+- `test:db`: 10 passed, 0 failed; isolated real MongoDB replica set.
+- TypeScript/ESLint: passed; production build: passed (all scaffold routes).
+- CLI commands: check/status/migrate/verify tested end-to-end, including an idempotent rerun.
+- No Atlas connection, real credentials, cloud roles or persistent database verified. No new UI behavior.
+- [Setup, scope, migration and recovery details](docs/implementation/F02_Database_Foundation.md).
+
+### F01 — 2026-10-20
+
 Checked on 2026-10-20:
 
 | Check | Result |
@@ -102,4 +121,4 @@ Development dependency follow-up: `braces` latest published version checked was 
 - Do not expose this scaffold as an authenticated production application.
 - No secrets are copied from the POC. No external paid services are called.
 - Voice rights, licensed music, Meta permissions and deployment region remain launch decisions.
-- Next after F01: F02 database foundation, then F03 authentication.
+- Next: configure a persistent Atlas/local replica-set database and implement F03 authentication. Only migration control schema/indexes exist so far; auth and product collections arrive with their features.
