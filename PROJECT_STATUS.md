@@ -43,6 +43,14 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Change log
 
+### 2026-10-21 — Development branch workflow
+
+- Created `dev` from the initial scaffold commit on `main` for ongoing development.
+- After each completed change: update this file, run relevant checks, commit and push to `origin/dev`.
+- `main` holds reviewed milestones. Promote `dev` with a pull request after owner approval; no routine development pushes to `main`.
+- Updated repository README and implementation instructions. Documentation-only change; application checks were not rerun. Verified branch setup and reviewed the documentation diff.
+- This is a documented workflow; GitHub branch-protection rules have not been configured.
+
 ### 2026-10-21 — GitHub repository setup
 
 - Repository: https://github.com/Karan-Chawla24/AI_STUDIO (public).
