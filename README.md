@@ -6,7 +6,7 @@ An educational video application using the Mineral Signal design system.
 - **Implementation source of truth:** [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
 - **Architecture and contracts:** [`docs/`](docs/)
 
-The scaffold, database foundation and authentication are implemented. F03 is ready for owner testing; work pauses before F04. Saved projects, email verification/recovery, generation and publishing remain planned. See [authentication setup and test checklist](docs/implementation/F03_Authentication.md).
+The scaffold, database foundation, authentication and email verification/recovery are implemented. F04 uses local email previews for owner testing; work pauses before F05. Saved projects, generation and publishing remain planned. See [email setup and test checklist](docs/implementation/F04_Account_Email.md).
 
 Use Node.js 24 LTS. From `studio/`, run `npm ci`, configure `.env.local` using `.env.example`, then `npm run auth:migrate` and `npm run dev -- --port 3001`. Open `http://localhost:3001/sign-up`. Run `npm run check`, `npm run test:auth`, `npm run test:db` and `npm run build` for validation.
 

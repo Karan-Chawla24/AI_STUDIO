@@ -14,6 +14,8 @@
     "check": "npm run typecheck && npm run lint",
     "test:db": "node --conditions=react-server --import tsx --test --test-concurrency=1 tests/db.test.ts",
     "test:auth": "node --conditions=react-server --import tsx --test --test-concurrency=1 tests/auth.test.ts",
+    "test:email": "node --conditions=react-server --import tsx --test --test-concurrency=1 tests/account-email.test.ts",
+    "email:preview": "node --import tsx scripts/email-preview.ts",
     "auth:migrate": "node --conditions=react-server --import tsx scripts/auth-db.ts migrate",
     "auth:verify": "node --conditions=react-server --import tsx scripts/auth-db.ts verify",
     "auth:schema": "node --conditions=react-server --import tsx scripts/auth-db.ts schema",

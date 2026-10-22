@@ -6,7 +6,7 @@ This is the source of truth for implementation progress. The PRD defines product
 
 ## Current milestone
 
-**F03 — Authentication implemented and ready for owner testing.** Stop here; do not start F04 until the owner reviews it and requests continuation.
+**F04 — Email verification and password recovery implemented and ready for owner testing with local email previews.** Stop here; do not start F05 until the owner requests continuation.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -18,8 +18,8 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | --- | --- | --- | --- |
 | F01 | Next.js/TypeScript scaffold, Mineral Signal tokens, responsive app shell | Install, typecheck, lint, production build and route smoke checks pass | Complete |
 | F02 | MongoDB connection and migration/index tooling | Configuration validated; connection failures handled; bootstrap indexes verified against a test database; domain indexes follow owning features | Complete (local integration verified) |
-| F03 | Better Auth email/password and sessions | Sign-up/sign-in/sign-out work; protected pages/APIs enforce session ownership | Implemented; awaiting owner review |
-| F04 | Email verification and password recovery | Expiring links, resend limits and generic recovery responses tested | Planned |
+| F03 | Better Auth email/password and sessions | Sign-up/sign-in/sign-out work; protected pages/APIs enforce session ownership | Complete; owner authorized progression |
+| F04 | Email verification and password recovery | Expiring links, resend limits and generic recovery responses tested | Implemented; awaiting owner review |
 | F05 | Project creation and persistence | User can create/read a draft; foreign-owned IDs return 404 | Planned |
 | F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Planned |
 | F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Planned |
@@ -42,6 +42,15 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-22 — F04 verification and password recovery
+
+- Owner authorized the next feature and selected local email previews. Added verification requests/confirmation, a studio verification banner, forgot/reset password screens, resend cooldowns and explicit confirmation before link consumption.
+- Added an EmailSender adapter, local ignored preview files and `email:preview` command. Resend transport is configurable but live delivery/domain setup remain untested. No real emails sent or external paid services called.
+- Verification links expire in 60 minutes and use an adapter-stored fingerprint for single-use enforcement. Reset links expire in 15 minutes; native transactional reset revokes existing sessions. Fragments keep link tokens out of page requests; same-origin POSTs perform mutations.
+- Updated the API contract for the confirmation POST bridge and fixed server-controlled link destinations. Existing F03 schema/indexes remain compatible; no new migration or dependency is required.
+- All 25 isolated database/auth/email tests passed. Browser flow passed local delivery, verification, cooldown, password mismatch, reset, session revocation and new-password login. Desktop/390px/320px layouts inspected with zero runtime/hydration errors. Fixed same-page fragment navigation discovered in the first browser run.
+- Final TypeScript, ESLint and production build passed. F05 remains planned; stop for owner testing.
 
 ### 2026-10-22 — Authentication handoff status
 
@@ -108,12 +117,20 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Verification
 
+### F04 — 2026-10-22
+
+- Six email tests plus all 19 existing auth/database tests passed (25 total).
+- Browser evidence: [report](docs/implementation/F04-browser-verification.json), [desktop verification](docs/implementation/F04-verify-desktop.png), [mobile reset](docs/implementation/F04-reset-mobile.png).
+- [Setup, API/persistence details, limitations and owner checklist](docs/implementation/F04_Account_Email.md).
+- TypeScript, ESLint and production build passed. Real email delivery is not verified. Owner review is pending; do not start F05.
+- Existing Atlas auth schema/index verification passed without migration. The production preview on localhost:3001 serves all four account pages with HTTP 200 and the no-referrer header.
+
 ### F03 — 2026-10-22
 
 - Nine auth integration tests + ten database tests passed; TypeScript, ESLint and build passed.
 - Browser evidence: [test report](docs/implementation/F03-browser-verification.json), [desktop](docs/implementation/F03-sign-in-desktop.png), [mobile](docs/implementation/F03-sign-in-mobile.png).
 - [Owner test checklist and scope](docs/implementation/F03_Authentication.md). Atlas migrations verified; email delivery is not implemented.
-- User approval is pending. Do not advance to F04 until review is complete.
+- Owner subsequently authorized progression to F04; its separate review gate is recorded above.
 
 ### F02 — 2026-10-21
 
@@ -152,4 +169,4 @@ Development dependency follow-up: `braces` latest published version checked was 
 - This is an early-access local test, not a production release; email delivery, role separation and deployment hardening remain outstanding.
 - No secrets are copied from the POC. No external paid services are called.
 - Voice rights, licensed music, Meta permissions and deployment region remain launch decisions.
-- Next action: owner tests F03. After approval, implement F04 email verification and password recovery. Product collections remain planned for their owning features.
+- Next action: owner tests F04 with local email previews. After approval, implement F05 project creation and persistence. Real email delivery/domain verification and operational hardening remain release requirements.

@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-22",
+  "verification": "passed",
+  "previewDelivery": "passed",
+  "cooldown": "passed",
+  "tokenRemovedFromAddressBar": "passed",
+  "passwordMismatch": "passed",
+  "passwordReset": "passed",
+  "sessionRevocation": "passed",
+  "newPasswordLogin": "passed",
+  "mobileWidths": [
+    390,
+    320
+  ],
+  "pageErrors": [],
+  "database": "isolated temporary replica set"
+}

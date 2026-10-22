@@ -82,10 +82,12 @@ The pinned Better Auth SDK/native handler owns endpoint schemas, error envelopes
 | `POST /sign-in/email` | email, password, optional rememberMe | Set session cookie; generic invalid-credentials message; rate limit. |
 | `POST /sign-out` | Native empty payload | Revoke current session; clear cookie; accepted jobs continue. |
 | `GET /get-session` | Cookie | Native session/user projection or unauthenticated result; use `/me` for application profile. |
-| `POST /request-password-reset` | email and fixed allowed redirectTo | Same acknowledgement whether account exists; queue transactional email. |
+| `POST /request-password-reset` | email; destination fixed server-side | Same acknowledgement whether account exists; dispatch transactional email. |
 | `POST /reset-password` | token, newPassword | Enforce expiry/single-use; revoke sessions as configured and require login. |
-| `POST /send-verification-email` | email, approved callbackURL | Throttle/resend cooldown; generic acknowledgement. |
-| `GET /verify-email` | signed native token | Validate via adapter; redirect to allowlisted app path. |
+| `POST /send-verification-email` | email; destination fixed server-side | Throttle/resend cooldown; generic acknowledgement. |
+| `POST /verify-email` | signed native token in JSON body | F04 application bridge invokes the native GET handler internally after explicit user confirmation; public GET is blocked. |
+
+F04 refinement (2026-10-22): email links use fixed app pages with fragment tokens, removed from the address bar after loading. They require explicit confirmation so link scanners cannot mutate accounts. Verification adds an adapter-owned single-use fingerprint record around the native JWT check. Local preview delivery is enabled for owner testing; real delivery and durable email retry remain release follow-ups. See [F04 contract and limitations](implementation/F04_Account_Email.md).
 
 Proposed password policy: 12–128 characters, no silent trimming, no logging, support Unicode and password managers. Normalize email through the auth library, not by inventing Gmail-specific rules. Password reset/verification email is required; general job emails remain out of scope. Recent authentication (within ten minutes) is required for account deletion; use supported reauthentication/session facilities. No user-facing admin role or role escalation endpoint exists in V1.
 

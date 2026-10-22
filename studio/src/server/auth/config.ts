@@ -21,7 +21,7 @@ export const authPolicy = {
   session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24, cookieCache: { enabled: false } },
   rateLimit: {
     enabled: true, storage: "database", window: 60, max: 100,
-    customRules: { "/sign-in/email": { window: 60, max: 10 }, "/sign-up/email": { window: 60, max: 5 } },
+    customRules: { "/sign-in/email": { window: 60, max: 10 }, "/sign-up/email": { window: 60, max: 5 }, "/send-verification-email": { window: 60, max: 1 }, "/request-password-reset": { window: 60, max: 1 }, "/reset-password": { window: 60, max: 5 }, "/verify-email": { window: 60, max: 10 } },
   },
   logger: { disabled: true },
 } satisfies BetterAuthOptions;

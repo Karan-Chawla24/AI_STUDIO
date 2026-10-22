@@ -8,5 +8,5 @@ export default async function StudioLayout({ children }: { children: React.React
   if (!requestHeaders.get("cookie")) redirect("/sign-in");
   const identity = await getIdentity(requestHeaders);
   if (!identity) redirect("/sign-in");
-  return <AppShell userName={identity.profile.displayName}>{children}</AppShell>;
+  return <AppShell userName={identity.profile.displayName} emailVerified={identity.user.emailVerified}>{children}</AppShell>;
 }

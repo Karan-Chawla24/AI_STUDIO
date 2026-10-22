@@ -14,7 +14,7 @@ const navigation: { href: string; label: string; icon: IconName }[] = [
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
 
-export function AppShell({ children, userName }: { children: React.ReactNode; userName: string }) {
+export function AppShell({ children, userName, emailVerified }: { children: React.ReactNode; userName: string; emailVerified: boolean }) {
   const pathname = usePathname();
   const active = navigation.find((item) => item.href === pathname);
   return (
@@ -36,7 +36,7 @@ export function AppShell({ children, userName }: { children: React.ReactNode; us
       </aside>
       <div className="workspace">
         <header className="topbar"><span>{active?.label ?? "Studio"}</span><div className="account-actions"><span className="account-name">{userName}</span><SignOut /></div></header>
-        <main id="main-content" tabIndex={-1}>{children}</main>
+        <main id="main-content" tabIndex={-1}>{!emailVerified && <aside className="verification-banner">Confirm your email before generating or publishing videos. <Link href="/verify-email">Verify email</Link></aside>}{children}</main>
         <footer className="workspace-footer">Account access is ready to test · Saved projects are coming in a later milestone.</footer>
       </div>
     </div>

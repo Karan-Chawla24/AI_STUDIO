@@ -36,7 +36,9 @@ MongoDB infrastructure lives in `src/server/db/`; Better Auth session/profile se
 
 See [F03 setup and owner test checklist](../docs/implementation/F03_Authentication.md). Configure APP_ORIGIN and BETTER_AUTH_SECRET alongside MongoDB settings, then run `npm run auth:migrate` and `npm run auth:verify`. Start `npm run dev -- --port 3001` and open `http://localhost:3001/sign-up`.
 
-`npm run test:auth` runs isolated account/session security tests. `npm run auth:schema` exports the pinned adapter schema. Email verification and password recovery remain intentionally unavailable until F04. Stop for owner testing before advancing.
+`npm run test:auth` runs isolated account/session security tests. `npm run auth:schema` exports the pinned adapter schema.
+
+F04 adds verification and password recovery. Set `EMAIL_DELIVERY=preview`, request a link through `/verify-email` or `/forgot-password`, then run `npm run email:preview` to see local messages. `npm run test:email` exercises these flows against an isolated database. See [F04 setup and owner checklist](../docs/implementation/F04_Account_Email.md). Real email delivery remains untested. Stop for owner testing before F05.
 
 ## Database tooling
 
