@@ -19,3 +19,4 @@ internet-poc/out/
 .aws/
 *.pem
 *.key
+.local/

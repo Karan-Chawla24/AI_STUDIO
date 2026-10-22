@@ -62,11 +62,17 @@ export async function verifyDatabase(db: Db): Promise<void> {
 
 /** Forward-only, idempotent bootstrap. Never drops collections/indexes or edits existing validators. */
 export async function migrateDatabase(db: Db): Promise<"applied" | "already-applied"> {
+  return runMigration(db, bootstrapId, checksum, async () => {
+    await db.collection("schemaMigrations").createIndex(index.key, { name: index.name });
+  }, () => verifyDatabase(db));
+}
+
+export async function runMigration(db: Db, migrationId: string, migrationChecksum: string, apply: () => Promise<void>, verify: () => Promise<void>): Promise<"applied" | "already-applied"> {
   await ensureControlCollection(db);
   const records = db.collection<MigrationRecord>("schemaMigrations");
   const owner = randomUUID();
   const now = new Date();
-  const base = { checksum, state: "RUNNING" as const, startedAt: now, finishedAt: null, leaseOwner: owner, leaseExpiresAt: new Date(now.getTime() + 600_000), checkpoint: "bootstrap" };
+  const base = { checksum: migrationChecksum, state: "RUNNING" as const, startedAt: now, finishedAt: null, leaseOwner: owner, leaseExpiresAt: new Date(now.getTime() + 600_000), checkpoint: migrationId };
   try {
     await records.insertOne({ _id: lockId, ...base });
   } catch (error) {
@@ -77,20 +83,20 @@ export async function migrateDatabase(db: Db): Promise<"applied" | "already-appl
   }
   let started = false;
   try {
-    const previous = await records.findOne({ _id: bootstrapId });
-    if (previous && previous.checksum !== checksum) throw new DatabaseError("DB_CHECKSUM_MISMATCH", "An existing migration checksum differs. Do not edit previously applied migrations.");
+    const previous = await records.findOne({ _id: migrationId });
+    if (previous && previous.checksum !== migrationChecksum) throw new DatabaseError("DB_CHECKSUM_MISMATCH", "An existing migration checksum differs. Do not edit previously applied migrations.");
     if (previous?.state === "APPLIED") {
-      await verifyDatabase(db);
+      await verify();
       return "already-applied";
     }
-    await records.replaceOne({ _id: bootstrapId }, base, { upsert: true });
+    await records.replaceOne({ _id: migrationId }, base, { upsert: true });
     started = true;
-    await records.createIndex(index.key, { name: index.name });
-    await records.updateOne({ _id: bootstrapId, leaseOwner: owner }, { $set: { state: "APPLIED", finishedAt: new Date(), checkpoint: "complete" } });
-    await verifyDatabase(db);
+    await apply();
+    await records.updateOne({ _id: migrationId, leaseOwner: owner }, { $set: { state: "APPLIED", finishedAt: new Date(), checkpoint: "complete" } });
+    await verify();
     return "applied";
   } catch (error) {
-    if (started) await records.updateOne({ _id: bootstrapId, leaseOwner: owner }, { $set: { state: "FAILED", finishedAt: new Date(), checkpoint: "failed; inspect database before rerun" } });
+    if (started) await records.updateOne({ _id: migrationId, leaseOwner: owner }, { $set: { state: "FAILED", finishedAt: new Date(), checkpoint: "failed; inspect database before rerun" } });
     throw error;
   } finally {
     await records.deleteOne({ _id: lockId, leaseOwner: owner });

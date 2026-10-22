@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "./icon";
+import { SignOut } from "./sign-out";
 
 const navigation: { href: string; label: string; icon: IconName }[] = [
   { href: "/home", label: "Home", icon: "home" },
@@ -13,7 +14,7 @@ const navigation: { href: string; label: string; icon: IconName }[] = [
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, userName }: { children: React.ReactNode; userName: string }) {
   const pathname = usePathname();
   const active = navigation.find((item) => item.href === pathname);
   return (
@@ -34,9 +35,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="sidebar-note"><span className="signal-dot" /> A little clarity goes a long way.</div>
       </aside>
       <div className="workspace">
-        <header className="topbar"><span>{active?.label ?? "Studio"}</span><span className="preview-badge">Development preview</span></header>
+        <header className="topbar"><span>{active?.label ?? "Studio"}</span><div className="account-actions"><span className="account-name">{userName}</span><SignOut /></div></header>
         <main id="main-content" tabIndex={-1}>{children}</main>
-        <footer className="workspace-footer">Application foundation · Account and project features are coming next.</footer>
+        <footer className="workspace-footer">Account access is ready to test · Saved projects are coming in a later milestone.</footer>
       </div>
     </div>
   );

@@ -10,11 +10,10 @@ The system Node 20.10 installation is too old; switch Node versions before insta
 
 ```sh
 npm ci
-npm run dev
+npm run dev -- --port 3001
 ```
 
-Open http://localhost:3000. No environment variables or paid service calls are needed for the scaffold.
-For a different port use `npm run dev -- --port 3001`.
+Open http://localhost:3001. Authentication requires the database and auth configuration below. Public forms and the build can load without a database, but account actions cannot succeed until it is configured and migrated. Keep APP_ORIGIN aligned with the hostname and port you use.
 
 ```sh
 npm run check
@@ -29,9 +28,15 @@ npm start
 - `(studio)`: Shared application shell for Home, Create Video, Projects, Scheduled, Connections and Settings.
 - Fonts are bundled locally through Fontsource; loading the app does not contact Google Fonts.
 
-These pages are explicitly labelled development previews. They are public, have no user session or database, and contain no functioning generation/publishing actions. `/` redirects to `/home` until the public homepage milestone.
+Sign-up and sign-in are public; studio pages now require an active database-backed session. Generation/publishing actions are not implemented. `/` redirects to `/home` until the public homepage milestone; unauthenticated studio access redirects to sign-in.
 
-MongoDB connection, transaction and migration infrastructure now lives in `src/server/db/`. A persistent database is not configured yet. Better Auth, Inngest, R2 and the video pipeline remain future features.
+MongoDB infrastructure lives in `src/server/db/`; Better Auth session/profile services live in `src/server/auth/`. Inngest, R2 and the video pipeline remain future features.
+
+## Authentication test
+
+See [F03 setup and owner test checklist](../docs/implementation/F03_Authentication.md). Configure APP_ORIGIN and BETTER_AUTH_SECRET alongside MongoDB settings, then run `npm run auth:migrate` and `npm run auth:verify`. Start `npm run dev -- --port 3001` and open `http://localhost:3001/sign-up`.
+
+`npm run test:auth` runs isolated account/session security tests. `npm run auth:schema` exports the pinned adapter schema. Email verification and password recovery remain intentionally unavailable until F04. Stop for owner testing before advancing.
 
 ## Database tooling
 

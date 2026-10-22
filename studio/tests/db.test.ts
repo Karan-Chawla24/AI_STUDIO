@@ -13,6 +13,8 @@ test("configuration is explicit and never includes credentials in errors", () =>
   assert.throws(() => readDatabaseConfig({ NODE_ENV: "production", MONGODB_URI: "mongodb://user:secret@localhost/?tls=false", MONGODB_DB_NAME: "studio" }), /requires TLS/);
   assert.throws(() => readDatabaseConfig({ MONGODB_URI: "mongodb://localhost/?tlsAllowInvalidCertificates=true", MONGODB_DB_NAME: "studio" }), /verification/);
   assert.equal(readDatabaseConfig({ MONGODB_URI: "mongodb://localhost", MONGODB_DB_NAME: "studio_dev" }).database, "studio_dev");
+  assert.equal(readDatabaseConfig({ MONGODB_URI: "mongodb://localhost", MONGODB_DB_NAME: "AI_Studio" }).database, "AI_Studio");
+  assert.throws(() => readDatabaseConfig({ MONGODB_URI: "mongodb://localhost", MONGODB_DB_NAME: "Admin" }), /dedicated/);
 });
 
 test("connection failures are bounded and sanitized", async () => {

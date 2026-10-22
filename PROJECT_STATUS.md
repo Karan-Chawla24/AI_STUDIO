@@ -1,12 +1,12 @@
 # Project status — Educational Video Studio
 
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 This is the source of truth for implementation progress. The PRD defines product scope; the API, database and system-design documents define the implementation contracts. Stitch boards are visual references, not proof that features work.
 
 ## Current milestone
 
-**F01 and F02 complete.** Next: F03 authentication. Persistent development database configuration is still needed.
+**F03 — Authentication implemented and ready for owner testing.** Stop here; do not start F04 until the owner reviews it and requests continuation.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -18,7 +18,7 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | --- | --- | --- | --- |
 | F01 | Next.js/TypeScript scaffold, Mineral Signal tokens, responsive app shell | Install, typecheck, lint, production build and route smoke checks pass | Complete |
 | F02 | MongoDB connection and migration/index tooling | Configuration validated; connection failures handled; bootstrap indexes verified against a test database; domain indexes follow owning features | Complete (local integration verified) |
-| F03 | Better Auth email/password and sessions | Sign-up/sign-in/sign-out work; protected pages/APIs enforce session ownership | Planned |
+| F03 | Better Auth email/password and sessions | Sign-up/sign-in/sign-out work; protected pages/APIs enforce session ownership | Implemented; awaiting owner review |
 | F04 | Email verification and password recovery | Expiring links, resend limits and generic recovery responses tested | Planned |
 | F05 | Project creation and persistence | User can create/read a draft; foreign-owned IDs return 404 | Planned |
 | F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Planned |
@@ -42,6 +42,17 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-22 — F03 authentication and owner review gate
+
+- Owner requested testing before the next feature. Stop after F03 and wait for review before implementing F04.
+- Implemented pinned Better Auth/MongoDB adapter 1.7.12, explicit auth/profile migration, sign-up/sign-in/sign-out UI, protected studio routes and owner-only `/api/v1/me`.
+- Added session revocation/lifecycle checks, database rate limiting, exact-origin checks, request bounds and generic error messages. Email verification/password recovery remain F04; test accounts remain unverified.
+- Generated local secret and added APP_ORIGIN to ignored `.env.local`; no secret is committed. Owner chose to supply an Atlas URI rather than use a local preview database.
+- All 19 isolated authentication/database tests passed; the 10 database tests passed again after correcting validation to accept the owner's mixed-case database name. TypeScript, lint and final production build passed.
+- Atlas connection, auth migration and schema/index verification passed. Automated account creation was tested only against isolated databases; the persistent database is ready for the owner to create a test account.
+- Browser flow passed registration, incorrect password, sign-in, session reload, owner-profile API, sign-out and protected-page redirects. Desktop/mobile layouts checked at 1440px/390px/320px, with no runtime/hydration errors. Fixed the password field's accessible label during review.
+- Next.js added its standard agent-guidance block during development. Local-only browser tooling is excluded under `.local/`.
 
 ### 2026-10-21 — Local environment template
 
@@ -90,6 +101,13 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Verification
 
+### F03 — 2026-10-22
+
+- Nine auth integration tests + ten database tests passed; TypeScript, ESLint and build passed.
+- Browser evidence: [test report](docs/implementation/F03-browser-verification.json), [desktop](docs/implementation/F03-sign-in-desktop.png), [mobile](docs/implementation/F03-sign-in-mobile.png).
+- [Owner test checklist and scope](docs/implementation/F03_Authentication.md). Atlas migrations verified; email delivery is not implemented.
+- User approval is pending. Do not advance to F04 until review is complete.
+
 ### F02 — 2026-10-21
 
 - `test:db`: 10 passed, 0 failed; isolated real MongoDB replica set.
@@ -124,7 +142,7 @@ Development dependency follow-up: `braces` latest published version checked was 
 
 ## Known limits and next step
 
-- Do not expose this scaffold as an authenticated production application.
+- This is an early-access local test, not a production release; email delivery, role separation and deployment hardening remain outstanding.
 - No secrets are copied from the POC. No external paid services are called.
 - Voice rights, licensed music, Meta permissions and deployment region remain launch decisions.
-- Next: configure a persistent Atlas/local replica-set database and implement F03 authentication. Only migration control schema/indexes exist so far; auth and product collections arrive with their features.
+- Next action: owner tests F03. After approval, implement F04 email verification and password recovery. Product collections remain planned for their owning features.
