@@ -43,6 +43,13 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Change log
 
+### 2026-10-22 — Authentication handoff status
+
+- F03 implementation was committed and pushed to `origin/dev` as `0c8fda5`; no additional application changes were pending at this handoff.
+- Owner confirmed the Atlas connection string has been added. Local credentials remain ignored by Git; the successful Atlas connection and migration checks are recorded below.
+- Owner sign-up/sign-in testing and approval are still pending. F04 remains planned.
+- Documentation-only update: reviewed the status diff and Git whitespace checks; application tests were not rerun.
+
 ### 2026-10-22 — F03 authentication and owner review gate
 
 - Owner requested testing before the next feature. Stop after F03 and wait for review before implementing F04.
