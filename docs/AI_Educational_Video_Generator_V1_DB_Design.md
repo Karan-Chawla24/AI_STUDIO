@@ -344,6 +344,7 @@ Key notation follows Mongo order; `+` ascending, `-` descending. U=unique; P=par
 |---|---|---|
 | projects / project_owner_updated | ownerId+,updatedAt-,_id- | P lifecycle:ACTIVE; default list |
 | projects / project_owner_created | ownerId+,createdAt-,_id- | P lifecycle:ACTIVE; stable sort |
+| projects / project_admission_created | ownerId+,createdAt- | F05 rolling creation admission count, includes deleted drafts |
 | projects / project_owner_title | ownerId+,titleSort+,_id+ | P lifecycle:ACTIVE; literal prefix/title sort |
 | projects / project_creation_filter | ownerId+,statusProjection.creationStatus+,updatedAt-,_id- | P lifecycle:ACTIVE |
 | projects / project_publication_filter | ownerId+,statusProjection.publicationStatus+,updatedAt-,_id- | P lifecycle:ACTIVE |

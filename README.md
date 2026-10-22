@@ -6,9 +6,9 @@ An educational video application using the Mineral Signal design system.
 - **Implementation source of truth:** [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
 - **Architecture and contracts:** [`docs/`](docs/)
 
-The scaffold, database foundation, authentication and email verification/recovery are implemented. F04 uses local email previews for owner testing; work pauses before F05. Saved projects, generation and publishing remain planned. See [email setup and test checklist](docs/implementation/F04_Account_Email.md).
+The scaffold, database foundation, authentication, email verification/recovery and draft creation are implemented. F05 saves owned drafts and reopens them by URL; work pauses for owner testing before the F06 project library. Generation and publishing remain planned. See [draft setup and test checklist](docs/implementation/F05_Project_Creation.md).
 
-Use Node.js 24 LTS. From `studio/`, run `npm ci`, configure `.env.local` using `.env.example`, then `npm run auth:migrate` and `npm run dev -- --port 3001`. Open `http://localhost:3001/sign-up`. Run `npm run check`, `npm run test:auth`, `npm run test:db` and `npm run build` for validation.
+Use Node.js 24 LTS. From `studio/`, run `npm ci`, configure `.env.local` using `.env.example`, then `npm run projects:migrate` (includes auth setup) and `npm run dev -- --port 3001`. Open `http://localhost:3001/sign-up`. Run `npm run check`, `npm run test:auth`, `npm run test:email`, `npm run test:db`, `npm run test:projects` and `npm run build` for validation.
 
 Develop on `dev`. After each completed change, update the status file, run relevant checks, commit and push to `origin/dev`. Keep `main` for reviewed milestones; promote `dev` through a pull request after owner approval. Never commit credentials or generated provider output.
 

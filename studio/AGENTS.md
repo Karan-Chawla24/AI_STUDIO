@@ -9,7 +9,7 @@
 - Run `npm run check` and `npm run build` for relevant scaffold changes.
 - Use `dev` for ongoing development. After each completed change, update `../PROJECT_STATUS.md`, run relevant checks, then commit and push to `origin/dev`. The user authorized this ongoing workflow. Never include secrets, generated caches or unrelated local files; report any failed push accurately.
 - Keep `main` for reviewed milestones. Merge `dev` into `main` through a pull request when the user approves promotion; do not push development changes directly to `main`.
-- Owner review gate (2026-10-22): owner authorized F04 email verification/password recovery with local email previews. Finish and provide a working test flow, then stop for user testing before F05 or another feature.
+- Owner review gate (2026-10-22): owner authorized F05 project creation/persistence. Finish and provide a working test flow, then stop for user testing before F06 or another feature.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

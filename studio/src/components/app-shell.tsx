@@ -37,7 +37,7 @@ export function AppShell({ children, userName, emailVerified }: { children: Reac
       <div className="workspace">
         <header className="topbar"><span>{active?.label ?? "Studio"}</span><div className="account-actions"><span className="account-name">{userName}</span><SignOut /></div></header>
         <main id="main-content" tabIndex={-1}>{!emailVerified && <aside className="verification-banner">Confirm your email before generating or publishing videos. <Link href="/verify-email">Verify email</Link></aside>}{children}</main>
-        <footer className="workspace-footer">Account access is ready to test · Saved projects are coming in a later milestone.</footer>
+        <footer className="workspace-footer">Draft creation is ready to test · Storyboard tools are coming in a later milestone.</footer>
       </div>
     </div>
   );

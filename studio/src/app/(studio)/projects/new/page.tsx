@@ -1,5 +1,5 @@
-import { FeaturePlaceholder } from "@/components/feature-placeholder";
+import { ProjectCreateForm } from "@/components/project-create-form";
 export const metadata = { title: "Create Video" };
 export default function CreatePage() {
-  return <FeaturePlaceholder title="What will you explain?" description="A small question can become a great story." icon="create" detail="Your next idea needs a place to grow." />;
+  return <div className="page-content"><ol className="project-steps" aria-label="Video creation workflow"><li aria-current="step">01 <strong>Plan</strong></li><li>02 Storyboard</li><li>03 Generate</li><li>04 Publish</li></ol><header className="page-heading"><p className="eyebrow">Start with a little curiosity</p><h1>What will you explain?</h1><p className="lead">A small question can become a great story.</p></header><div className="project-create-grid"><ProjectCreateForm /><aside className="project-note"><span className="status-label">A good place to start</span><h2>One idea.<br />A clear perspective.</h2><p>Think of a question your audience would love to understand.</p><ul><li>How does Wi-Fi travel through walls?</li><li>Why does inflation happen?</li><li>What happens when you open a website?</li></ul><div className="project-note-footer">Save your starting point today. Storyboard tools arrive in a later milestone.</div></aside></div></div>;
 }

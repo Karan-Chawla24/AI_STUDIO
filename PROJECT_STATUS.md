@@ -6,7 +6,7 @@ This is the source of truth for implementation progress. The PRD defines product
 
 ## Current milestone
 
-**F04 — Email verification and password recovery implemented and ready for owner testing with local email previews.** Stop here; do not start F05 until the owner requests continuation.
+**F05 — Project creation and persistence implemented and ready for owner testing.** Atlas migration and preview readiness passed. Stop here; do not start F06 until the owner requests continuation.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -19,8 +19,8 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F01 | Next.js/TypeScript scaffold, Mineral Signal tokens, responsive app shell | Install, typecheck, lint, production build and route smoke checks pass | Complete |
 | F02 | MongoDB connection and migration/index tooling | Configuration validated; connection failures handled; bootstrap indexes verified against a test database; domain indexes follow owning features | Complete (local integration verified) |
 | F03 | Better Auth email/password and sessions | Sign-up/sign-in/sign-out work; protected pages/APIs enforce session ownership | Complete; owner authorized progression |
-| F04 | Email verification and password recovery | Expiring links, resend limits and generic recovery responses tested | Implemented; awaiting owner review |
-| F05 | Project creation and persistence | User can create/read a draft; foreign-owned IDs return 404 | Planned |
+| F04 | Email verification and password recovery | Expiring links, resend limits and generic recovery responses tested | Complete with local previews; owner authorized progression |
+| F05 | Project creation and persistence | User can create/read a draft; foreign-owned IDs return 404 | Implemented; awaiting owner review |
 | F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Planned |
 | F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Planned |
 | F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Planned |
@@ -42,6 +42,15 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-22 — F05 owned draft creation
+
+- Owner authorized the next feature. Added a Mineral Signal create-draft form and saved detail page with reload persistence, optional audience/niche and 60–90 second target duration.
+- Implemented POST `/api/v1/projects`, owner-scoped GET `/api/v1/projects/:projectId`, conditional ETags and session-bound CSRF token issuance. Unverified active users can save drafts. Invalid/foreign/deleted projects return404.
+- Added explicit migration for strict draft, terminal receipt and audit schemas/indexes. Creation atomically writes the profile fence, project, seven-day idempotency receipt and content-redacted audit. Added owner creation admission limit and recovery after uncertain commit acknowledgements.
+- Added duplicate-key JSON rejection, bounded bodies, Unicode validation, safe API errors and unchanged-request retry retention. Browser testing deliberately dropped a successful save response and confirmed the retry opened the original draft without duplication.
+- All 37 isolated tests passed (12 project tests plus 25 existing tests). TypeScript, lint and production build passed. Browser checks passed at desktop/390px/320px with no runtime/hydration errors; saved details and owner isolation verified.
+- No provider integration, project listing, editor or generation added. Existing user accounts are preserved; automated fixtures only use temporary databases. F06 remains planned until owner testing.
 
 ### 2026-10-22 — F04 verification and password recovery
 
@@ -117,12 +126,19 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Verification
 
+### F05 — 2026-10-22
+
+- 37 tests passed, zero failed. TypeScript, ESLint and production build passed.
+- Browser evidence: [report](docs/implementation/F05-browser-verification.json), [create desktop](docs/implementation/F05-create-desktop.png), [saved draft mobile](docs/implementation/F05-saved-mobile.png).
+- [Migration, API/DB details, retry limits and owner checklist](docs/implementation/F05_Project_Creation.md).
+- Atlas additive migration and schema/index verification passed. Production preview is running on localhost:3001; signed-out creation redirects to sign-in and project/CSRF APIs return401. No automated fixture accounts or drafts were inserted into Atlas. Owner review is pending; do not start F06.
+
 ### F04 — 2026-10-22
 
 - Six email tests plus all 19 existing auth/database tests passed (25 total).
 - Browser evidence: [report](docs/implementation/F04-browser-verification.json), [desktop verification](docs/implementation/F04-verify-desktop.png), [mobile reset](docs/implementation/F04-reset-mobile.png).
 - [Setup, API/persistence details, limitations and owner checklist](docs/implementation/F04_Account_Email.md).
-- TypeScript, ESLint and production build passed. Real email delivery is not verified. Owner review is pending; do not start F05.
+- TypeScript, ESLint and production build passed. Real email delivery is not verified. Owner subsequently authorized progression to F05.
 - Existing Atlas auth schema/index verification passed without migration. The production preview on localhost:3001 serves all four account pages with HTTP 200 and the no-referrer header.
 
 ### F03 — 2026-10-22
@@ -169,4 +185,4 @@ Development dependency follow-up: `braces` latest published version checked was 
 - This is an early-access local test, not a production release; email delivery, role separation and deployment hardening remain outstanding.
 - No secrets are copied from the POC. No external paid services are called.
 - Voice rights, licensed music, Meta permissions and deployment region remain launch decisions.
-- Next action: owner tests F04 with local email previews. After approval, implement F05 project creation and persistence. Real email delivery/domain verification and operational hardening remain release requirements.
+- Next action: owner tests F05 by creating a draft and reopening its saved URL. After approval, implement F06 project library/dashboard. Real email delivery/domain verification and operational hardening remain release requirements.

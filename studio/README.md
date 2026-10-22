@@ -38,9 +38,11 @@ See [F03 setup and owner test checklist](../docs/implementation/F03_Authenticati
 
 `npm run test:auth` runs isolated account/session security tests. `npm run auth:schema` exports the pinned adapter schema.
 
-F04 adds verification and password recovery. Set `EMAIL_DELIVERY=preview`, request a link through `/verify-email` or `/forgot-password`, then run `npm run email:preview` to see local messages. `npm run test:email` exercises these flows against an isolated database. See [F04 setup and owner checklist](../docs/implementation/F04_Account_Email.md). Real email delivery remains untested. Stop for owner testing before F05.
+F04 adds verification and password recovery. Set `EMAIL_DELIVERY=preview`, request a link through `/verify-email` or `/forgot-password`, then run `npm run email:preview` to see local messages. `npm run test:email` exercises these flows against an isolated database. See [F04 setup and owner checklist](../docs/implementation/F04_Account_Email.md). Real email delivery remains untested. The current owner review gate is recorded in `PROJECT_STATUS.md`.
 
 ## Database tooling
+
+F05 adds owned draft creation at `/projects/new` and saved detail pages at `/projects/<id>`. Run `npm run projects:migrate` and `npm run projects:verify` before use. `npm run test:projects` uses an isolated replica set. The project library, editor and generation tools are not implemented yet. See [F05 setup and owner checklist](../docs/implementation/F05_Project_Creation.md).
 
 See [F02 database setup and recovery](../docs/implementation/F02_Database_Foundation.md). Copy `.env.example` to `.env.local` and configure your own replica-set/Atlas database before running `npm run db:check`, `npm run db:migrate` and `npm run db:verify`. Migrations are explicit and never run at startup.
 

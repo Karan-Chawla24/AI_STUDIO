@@ -70,6 +70,8 @@ All `/api/v1` operations require session except none of the catalog endpoints ar
 
 For cookie-authenticated unsafe methods verify exact allowed Origin, Fetch Metadata where present, and CSRF token/header using a server-issued session-bound mechanism. SameSite is defense in depth. Missing Origin on browser mutations is rejected unless a specifically authenticated internal route permits it. Browser CORS is same-origin; no wildcard credentials. OAuth callback uses single-use state instead of normal CSRF flow.
 
+F05 implementation: GET `/api/v1/csrf` returns `{data:{token},requestId}` to the active session with private/no-store caching. Supply it as `X-CSRF-Token` for project creation. It expires after one hour and is bound to the current user/session. The endpoint accepts no query. Draft creation/read are implemented; the remaining project endpoints below are still future contracts. See [F05 behavior and limits](implementation/F05_Project_Creation.md).
+
 Every resource query is owner-scoped, including nested scene/render/proposal/connection references. Return 404 RESOURCE_NOT_FOUND for absent, deleted or foreign-owned resources, avoiding existence leaks. The owner is taken only from session. Browser DTOs never expose raw provider identifiers, access tokens, R2 keys, model prompts or worker internals.
 
 ### 3.3 Better Auth boundary

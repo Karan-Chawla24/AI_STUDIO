@@ -74,7 +74,7 @@ export async function activeIdentity(auth: ReturnType<typeof createAuth>, connec
   if (!identity) return null;
   const profile = await provisionProfile(connection.db, identity.user);
   if (!profile || profile.lifecycle !== "ACTIVE") return null;
-  return { user: identity.user, profile };
+  return { user: identity.user, profile, sessionId: identity.session.id };
 }
 
 export async function getIdentity(headers: Headers) {
