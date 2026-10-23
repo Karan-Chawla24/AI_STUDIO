@@ -42,7 +42,7 @@ F04 adds verification and password recovery. Set `EMAIL_DELIVERY=preview`, reque
 
 ## Database tooling
 
-F05 adds owned draft creation at `/projects/new` and saved detail pages at `/projects/<id>`. Run `npm run projects:migrate` and `npm run projects:verify` before use. `npm run test:projects` uses an isolated replica set. The project library, editor and generation tools are not implemented yet. See [F05 setup and owner checklist](../docs/implementation/F05_Project_Creation.md).
+F05 adds owned draft creation at `/projects/new` and saved detail pages at `/projects/<id>`. Run `npm run projects:migrate` and `npm run projects:verify` before use. `npm run test:projects` uses an isolated replica set. F06 adds the project library and dashboard; the editor and generation tools remain planned. See [F05 setup and owner checklist](../docs/implementation/F05_Project_Creation.md).
 
 See [F02 database setup and recovery](../docs/implementation/F02_Database_Foundation.md). Copy `.env.example` to `.env.local` and configure your own replica-set/Atlas database before running `npm run db:check`, `npm run db:migrate` and `npm run db:verify`. Migrations are explicit and never run at startup.
 
@@ -53,3 +53,5 @@ See [F02 database setup and recovery](../docs/implementation/F02_Database_Founda
 Use the approved Mineral Signal tokens and Bricolage Grotesque/Manrope typography.
 The PRD and API/DB documents in `../docs/` control product behavior; generated design copy does not add requirements.
 Never copy `.env.local`, response caches or generated media from the POC into this app.
+
+F06: run `npm run library:migrate` and `npm run library:verify` before opening Projects or Home. `npm run test:library` checks owner isolation, search, cursor pagination and dashboard data. See [F06 setup and owner checklist](../docs/implementation/F06_Project_Library.md).

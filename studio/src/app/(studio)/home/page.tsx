@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/components/icon";
+import { ProjectLibrary } from "@/components/project-library";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -25,6 +26,6 @@ export default function HomePage() {
         ["04", "Publish", "Put your explanation out there."],
       ].map(([number, title, description]) => <div key={number}><span className="step-number">{number}</span><h3>{title}</h3><p>{description}</p></div>)}
     </section>
-    <section className="projects-preview" aria-labelledby="projects-title"><div className="section-heading"><h2 id="projects-title">Your projects</h2><Link href="/projects">Explore projects <span aria-hidden="true">↗</span></Link></div><div className="quiet-empty"><Icon name="projects" /><div><h3>A home for everything you create.</h3><p>The project library is coming next. Bookmark a saved draft to return to it.</p></div></div></section>
+    <ProjectLibrary dashboard />
   </div>;
 }

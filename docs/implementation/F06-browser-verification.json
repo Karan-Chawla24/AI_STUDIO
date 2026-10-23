@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-23",
+  "emptyState": "passed",
+  "savedDrafts": "passed",
+  "pagination": "passed",
+  "searchAndSort": "passed",
+  "filters": "passed",
+  "networkRetry": "passed",
+  "expiredCursorRefresh": "passed",
+  "dashboard": "25 projects, 5 recent",
+  "mobileWidths": [
+    390,
+    320
+  ],
+  "pageErrors": [],
+  "database": "isolated temporary replica set"
+}

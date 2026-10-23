@@ -5,6 +5,8 @@ import { readAuthConfig } from "../auth/config";
 import type { DatabaseConnection } from "../db/client";
 import { ProjectError, projectDTO, validateCreate } from "./model";
 import { createProject, readProject } from "./service";
+import { cursorKeys, dashboard, listProjects, parseLibraryQuery } from "./library";
+import { verifyLibrary } from "./library-schema";
 
 type Identity = NonNullable<Awaited<ReturnType<typeof getIdentity>>>;
 export function csrfToken(identity: Identity, secret: string, expires = Date.now() + 3600_000) {
@@ -38,7 +40,17 @@ export async function projectRequest(request: Request, deps: { connection: Datab
   const headers = new Headers({ "X-Request-Id": requestId, "Cache-Control": "private, no-store", Vary: "Cookie" });
   try {
     if (!deps.identity) throw new ProjectError("AUTH_REQUIRED", "Please sign in to your account.", 401);
+    const url = new URL(request.url);
+    if (request.method === "GET" && !projectId && url.pathname === "/api/v1/projects") {
+      const query = parseLibraryQuery(url.searchParams);
+      await verifyLibrary(deps.connection.db);
+      return Response.json({ data: await listProjects(deps.connection, deps.identity.user.id, query, cursorKeys(deps.config.secret)), requestId }, { headers });
+    }
     if (new URL(request.url).search) throw new ProjectError("INVALID_QUERY", "This endpoint accepts no query parameters.", 400);
+    if (request.method === "GET" && url.pathname === "/api/v1/dashboard") {
+      await verifyLibrary(deps.connection.db);
+      return Response.json({ data: await dashboard(deps.connection, deps.identity.user.id, cursorKeys(deps.config.secret)), requestId }, { headers });
+    }
     if (request.method === "GET" && projectId) {
       const data = projectDTO(await readProject(deps.connection, deps.identity.user.id, projectId));
       const tag = `"project-${data.id}-${data.resourceVersion}"`; headers.set("ETag", tag); headers.set("Cache-Control", "private, no-cache");

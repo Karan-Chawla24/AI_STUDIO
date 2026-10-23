@@ -6,7 +6,7 @@ This is the source of truth for implementation progress. The PRD defines product
 
 ## Current milestone
 
-**F05 — Project creation and persistence implemented and ready for owner testing.** Atlas migration and preview readiness passed. Stop here; do not start F06 until the owner requests continuation.
+**F06 — Project library and dashboard implemented and ready for owner testing.** Atlas migration and verification passed. Stop here; do not start F07 until the owner requests continuation.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -20,8 +20,8 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F02 | MongoDB connection and migration/index tooling | Configuration validated; connection failures handled; bootstrap indexes verified against a test database; domain indexes follow owning features | Complete (local integration verified) |
 | F03 | Better Auth email/password and sessions | Sign-up/sign-in/sign-out work; protected pages/APIs enforce session ownership | Complete; owner authorized progression |
 | F04 | Email verification and password recovery | Expiring links, resend limits and generic recovery responses tested | Complete with local previews; owner authorized progression |
-| F05 | Project creation and persistence | User can create/read a draft; foreign-owned IDs return 404 | Implemented; awaiting owner review |
-| F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Planned |
+| F05 | Project creation and persistence | User can create/read a draft; foreign-owned IDs return 404 | Complete; owner authorized progression |
+| F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Implemented; awaiting owner review |
 | F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Planned |
 | F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Planned |
 | F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Planned |
@@ -42,6 +42,15 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-23 — F06 project library and dashboard
+
+- Owner authorized the next feature. Added owner-scoped project listing with literal title-prefix search, creation/publication filters, three stable sort orders and signed 30-minute cursor pagination. Cursors bind the owner and query, support previous-key rotation and exclude later creations.
+- Added a real-data Home dashboard, recent-project cards, library loading/empty/error states, retry, expired-cursor recovery, request cancellation, appended-ID deduplication and focus refresh. Saved detail pages link back to Projects.
+- Added F06_0001_library_indexes as an additive migration; existing F05 schemas and checksums remain unchanged. Atlas migration and index verification passed, preserving existing accounts/drafts. Optional cursor signing variables are documented in .env.example; no credentials changed.
+- All 47 isolated regression tests passed. ESLint and production build/TypeScript passed. Chrome browser checks passed saved-draft listing, pagination, title search/sort, filters, network retry, expired-cursor refresh, dashboard counts and mobile widths 390/320 with no page errors. Screenshots and the browser report are in docs/implementation/.
+- Current schemas still support drafts only. Video/job/schedule counts remain zero until their owning features exist; no fake media totals or thumbnails were introduced. Pagination is live, not a database snapshot. F07 deletion and all editing/generation remain planned.
+- Production preview started at http://localhost:3001; sign-in returned 200 and unauthenticated library/dashboard APIs returned 401. Setup, cursor rotation and the owner test checklist are in docs/implementation/F06_Project_Library.md. Stop for owner testing before F07.
 
 ### 2026-10-23 — Review fix: account email timing
 
