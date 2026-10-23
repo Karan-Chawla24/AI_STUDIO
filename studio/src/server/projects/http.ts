@@ -7,6 +7,7 @@ import { ProjectError, projectDTO, validateCreate } from "./model";
 import { createProject, readProject } from "./service";
 import { cursorKeys, dashboard, listProjects, parseLibraryQuery } from "./library";
 import { verifyLibrary } from "./library-schema";
+import { deleteProject, readDeletion, validateDelete } from "./deletion";
 
 type Identity = NonNullable<Awaited<ReturnType<typeof getIdentity>>>;
 export function csrfToken(identity: Identity, secret: string, expires = Date.now() + 3600_000) {
@@ -47,6 +48,7 @@ export async function projectRequest(request: Request, deps: { connection: Datab
       return Response.json({ data: await listProjects(deps.connection, deps.identity.user.id, query, cursorKeys(deps.config.secret)), requestId }, { headers });
     }
     if (new URL(request.url).search) throw new ProjectError("INVALID_QUERY", "This endpoint accepts no query parameters.", 400);
+    if (request.method === "GET" && url.pathname.startsWith("/api/v1/deletions/")) return Response.json({ data: await readDeletion(deps.connection, deps.identity.user.id, url.pathname.split("/").at(-1)!), requestId }, { headers });
     if (request.method === "GET" && url.pathname === "/api/v1/dashboard") {
       await verifyLibrary(deps.connection.db);
       return Response.json({ data: await dashboard(deps.connection, deps.identity.user.id, cursorKeys(deps.config.secret)), requestId }, { headers });
@@ -58,12 +60,19 @@ export async function projectRequest(request: Request, deps: { connection: Datab
       return Response.json({ data, requestId }, { headers });
     }
     if (request.method === "GET" && new URL(request.url).pathname === "/api/v1/csrf") return Response.json({ data: { token: csrfToken(deps.identity, deps.config.secret) }, requestId }, { headers });
-    if (request.method !== "POST" || projectId) throw new ProjectError("METHOD_NOT_ALLOWED", "This action is not available.", 405);
+    if (!((request.method === "POST" && !projectId) || (request.method === "DELETE" && projectId))) throw new ProjectError("METHOD_NOT_ALLOWED", "This action is not available.", 405);
     if (request.headers.get("origin") !== deps.config.origin || request.headers.get("sec-fetch-site") === "cross-site" || !validCsrf(request.headers.get("x-csrf-token"), deps.identity, deps.config.secret)) throw new ProjectError("CSRF_FAILED", "Refresh your session and try again.", 403);
-    const input = validateCreate(await strictJSON(request));
+    const body = await strictJSON(request);
     const key = request.headers.get("idempotency-key");
     if (!key) throw new ProjectError("PRECONDITION_REQUIRED", "An Idempotency-Key is required.", 428);
     if (!/^[\x20-\x7e]{16,128}$/.test(key)) throw new ProjectError("VALIDATION_FAILED", "Use a retry key of 16–128 printable characters.", 422);
+    if (request.method === "DELETE" && projectId) {
+      const result = await deleteProject(deps.connection, deps.identity.user.id, projectId, validateDelete(body), key, requestId);
+      headers.set("Location", `/api/v1/deletions/${result.data.deletionId}`);
+      if (result.replayed) headers.set("Idempotent-Replay", "true");
+      return Response.json({ data: result.data, requestId }, { status: 202, headers });
+    }
+    const input = validateCreate(body);
     const result = await createProject(deps.connection, deps.identity.user.id, input, key, requestId);
     headers.set("Location", `/api/v1/projects/${result.data.id}`); if (result.replayed) headers.set("Idempotent-Replay", "true");
     return Response.json({ data: result.data, requestId }, { status: 201, headers });

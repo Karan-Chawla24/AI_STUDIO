@@ -6,7 +6,7 @@ This is the source of truth for implementation progress. The PRD defines product
 
 ## Current milestone
 
-**F06 — Project library and dashboard implemented and ready for owner testing.** Atlas migration and verification passed. Stop here; do not start F07 until the owner requests continuation.
+**F07 — Project deletion implemented and verified in isolation; Atlas activation blocked.** The configured database user lacks collMod permission on AI_Studio.idempotencyRecords. Apply deletion:migrate and deletion:verify after permissions are updated, then test. Do not start F08 until owner review.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -21,8 +21,8 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F03 | Better Auth email/password and sessions | Sign-up/sign-in/sign-out work; protected pages/APIs enforce session ownership | Complete; owner authorized progression |
 | F04 | Email verification and password recovery | Expiring links, resend limits and generic recovery responses tested | Complete with local previews; owner authorized progression |
 | F05 | Project creation and persistence | User can create/read a draft; foreign-owned IDs return 404 | Complete; owner authorized progression |
-| F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Implemented; awaiting owner review |
-| F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Planned |
+| F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Complete; owner authorized progression |
+| F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Implemented; Atlas migration blocked by collMod permission |
 | F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Planned |
 | F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Planned |
 | F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Planned |
@@ -42,6 +42,15 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-23 — F07 confirmed project deletion
+
+- Owner authorized F07. Added deletion actions to library cards and saved details with a native confirmation dialog, safe initial focus, cancel/Escape, pending protection and same-key retry after a lost response.
+- Added owner-scoped DELETE /api/v1/projects/:id and GET /api/v1/deletions/:id. Admission validates revision/confirmation, session CSRF and idempotency, then atomically fences the profile/project and writes a durable job, receipt and redacted audit. Accepted drafts disappear from ordinary reads/counts immediately.
+- Cleanup transaction scrubs draft content and creation-receipt bodies, retaining minimal tombstones and retry protection. Added after-response cleanup plus a polling worker/recovery command; accepted jobs survive process interruption. Unsupported future resources fail closed. No live owner projects were deleted during testing.
+- Added forward-only F07 schema/index migration with compatible F05 verification; immutable prior migration checksums remain unchanged. Terminal tombstones/jobs expire after 90 days; pending jobs do not expire. Setup, limitations and test checklist: docs/implementation/F07_Project_Deletion.md.
+- All 55 isolated regression tests passed, including eight deletion tests for ownership, stale revisions, concurrent retries, rollback, redaction and recovery. ESLint and production build/TypeScript passed. Chrome desktop/390px/320px checks passed cancellation, safe focus, interrupted response retry, hidden project, completed cleanup and updated dashboard count; zero page errors. Screenshots/report are committed as evidence.
+- Atlas activation is BLOCKED: error 8000 AtlasError, user is not allowed to run collMod on AI_Studio.idempotencyRecords. The migration was recorded FAILED and its lock released; the first validator change was rejected. Do not claim Atlas deletion is ready. Owner has been asked to update migration permissions. Rerun deletion:migrate and deletion:verify, start deletion:worker, then test before F08.
 
 ### 2026-10-23 — F06 project library and dashboard
 

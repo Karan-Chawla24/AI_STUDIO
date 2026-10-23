@@ -39,7 +39,7 @@ export type Project = {
 export function projectDTO(project: Project) {
   return { id: project._id, title: project.title, revision: project.revision, resourceVersion: project.resourceVersion,
     creationStatus: "DRAFT" as const, publicationStatus: "NOT_PUBLISHED" as const, stale: false, durationSeconds: null, thumbnailAvailable: false,
-    createdAt: project.createdAt.toISOString(), updatedAt: project.updatedAt.toISOString(), allowedActions: ["OPEN"], originalIdea: project.originalIdea,
+    createdAt: project.createdAt.toISOString(), updatedAt: project.updatedAt.toISOString(), allowedActions: ["OPEN", "DELETE"], originalIdea: project.originalIdea,
     refinedIdea: project.refinedIdea, audience: project.audience, niche: project.niche, activeStoryboardId: null, storyboardVersion: null,
     settings: project.settings, currentSnapshotHash: null, approval: null, activeJob: null, latestRender: null, warnings: [] };
 }

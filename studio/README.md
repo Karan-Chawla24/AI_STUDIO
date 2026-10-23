@@ -55,3 +55,5 @@ The PRD and API/DB documents in `../docs/` control product behavior; generated d
 Never copy `.env.local`, response caches or generated media from the POC into this app.
 
 F06: run `npm run library:migrate` and `npm run library:verify` before opening Projects or Home. `npm run test:library` checks owner isolation, search, cursor pagination and dashboard data. See [F06 setup and owner checklist](../docs/implementation/F06_Project_Library.md).
+
+F07: run `npm run deletion:migrate` and `npm run deletion:verify` before deleting drafts. Run `npm run deletion:worker` alongside the web app for durable cleanup recovery. `npm run test:deletion` uses isolated fixtures. See [deletion setup and test checklist](../docs/implementation/F07_Project_Deletion.md).
