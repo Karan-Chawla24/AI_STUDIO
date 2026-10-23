@@ -2,21 +2,29 @@ import "server-only";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { createHash } from "node:crypto";
+import { after } from "next/server";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { getDatabase, type DatabaseConnection } from "../db/client";
 import { authPolicy, readAuthConfig } from "./config";
 import { provisionProfile, type UserProfile } from "./profile";
 import { verifyAuthSchema, withPrebuiltIndexes } from "./schema";
-import { createEmailSender, type EmailSender } from "./email";
+import { createEmailSender, type AccountEmail, type EmailSender } from "./email";
 
-export function createAuth(connection: DatabaseConnection, config: ReturnType<typeof readAuthConfig>, sender?: EmailSender) {
+export function createAuth(connection: DatabaseConnection, config: ReturnType<typeof readAuthConfig>, sender?: EmailSender, scheduleEmail: (task: () => Promise<void>) => void = after) {
   const send: EmailSender = sender ?? { async send(message) { await createEmailSender(config.origin).send(message); } };
+  function queueEmail(message: AccountEmail) {
+    // Queue a callback, not a started promise: provider work begins after the HTTP response.
+    scheduleEmail(async () => {
+      try { await send.send(message); }
+      catch { console.error("ACCOUNT_EMAIL_DELIVERY_FAILED"); }
+    });
+  }
   const auth = betterAuth({
     ...authPolicy, secret: config.secret, baseURL: config.origin, trustedOrigins: [config.origin],
     emailAndPassword: { ...authPolicy.emailAndPassword,
       resetPasswordTokenExpiresIn: 15 * 60, revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, token }) => {
-        await send.send({ to: user.email, kind: "reset", url: `${config.origin}/reset-password#token=${encodeURIComponent(token)}` });
+        queueEmail({ to: user.email, kind: "reset", url: `${config.origin}/reset-password#token=${encodeURIComponent(token)}` });
       },
     },
     emailVerification: {
@@ -24,7 +32,7 @@ export function createAuth(connection: DatabaseConnection, config: ReturnType<ty
       sendVerificationEmail: async ({ user, token }): Promise<void> => {
         const context = await authContext;
         await context.internalAdapter.createVerificationValue({ identifier: `email-confirm:${createHash("sha256").update(token).digest("hex")}`, value: user.id, expiresAt: new Date(Date.now() + 60 * 60 * 1000) });
-        await send.send({ to: user.email, kind: "verification", url: `${config.origin}/verify-email#token=${encodeURIComponent(token)}` });
+        queueEmail({ to: user.email, kind: "verification", url: `${config.origin}/verify-email#token=${encodeURIComponent(token)}` });
       },
       afterEmailVerification: async (user) => {
         await connection.db.collection<UserProfile>("userProfiles").updateOne({ _id: user.id, lifecycle: "ACTIVE", emailVerified: false }, { $set: { emailVerified: true, updatedAt: new Date() }, $inc: { version: 1 } });

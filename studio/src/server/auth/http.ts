@@ -60,6 +60,8 @@ export async function handleAuthRequest(request: Request, deps: { origin: string
   const started = Date.now();
   const response = await deps.auth.handler(new Request(target, { method: path === "/verify-email" ? "GET" : request.method, headers, body: path === "/verify-email" ? undefined : body }));
   if (sending) {
+    // Delivery is queued by the auth callbacks via Next.js after(), never awaited here.
+    // This floor covers local account/token processing, not provider latency.
     await new Promise((resolve) => setTimeout(resolve, Math.max(0, 600 - (Date.now() - started))));
     if (response.status >= 500) console.error("ACCOUNT_EMAIL_DELIVERY_FAILED");
     if (response.ok || response.status >= 500) return Response.json({ status: true, message: "If this address is eligible, check your email for a link." }, { headers: cacheHeaders });

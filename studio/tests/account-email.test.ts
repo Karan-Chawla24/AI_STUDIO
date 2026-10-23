@@ -16,17 +16,22 @@ let connection: DatabaseConnection;
 let auth: ReturnType<typeof createAuth>;
 const messages: AccountEmail[] = [];
 let failDelivery = false;
+const queued: (() => Promise<void>)[] = [];
+let holdQueue = false;
+let deliveryGate: Promise<void> | undefined;
 before(async () => {
   server = await MongoMemoryReplSet.create({ binary: { version: "8.2.6" }, replSet: { count: 1 } });
   connection = await connectDatabase({ uri: server.getUri(), database: "studio_email_test", production: false });
   await migrateAuth(connection.db);
-  auth = createAuth(connection, { origin, secure: false, secret: randomBytes(32).toString("hex") }, { async send(message) { if (failDelivery) throw new Error("simulated delivery failure"); messages.push(message); } });
+  auth = createAuth(connection, { origin, secure: false, secret: randomBytes(32).toString("hex") }, { async send(message) { await deliveryGate; if (failDelivery) throw new Error("simulated delivery failure"); messages.push(message); } }, (task) => queued.push(task));
   assert.equal((await request("/sign-up/email", { name: "Email Tester", email: "email@example.com", password })).status, 200);
 }, { timeout: 240_000 });
 after(async () => { await connection?.client.close(); await server?.stop(); });
 beforeEach(async () => { await connection.db.collection("rateLimit").deleteMany({}); messages.length = 0; failDelivery = false; });
-function request(path: string, body: unknown, cookie = "", requestOrigin = origin) {
-  return handleAuthRequest(new Request(`${origin}/api/auth${path}`, { method: "POST", headers: { "Content-Type": "application/json", Origin: requestOrigin, cookie }, body: JSON.stringify(body) }), { auth, origin, connection });
+async function request(path: string, body: unknown, cookie = "", requestOrigin = origin) {
+  const response = await handleAuthRequest(new Request(`${origin}/api/auth${path}`, { method: "POST", headers: { "Content-Type": "application/json", Origin: requestOrigin, cookie }, body: JSON.stringify(body) }), { auth, origin, connection });
+  if (!holdQueue) for (const task of queued.splice(0)) await task();
+  return response;
 }
 function token(message: AccountEmail) { return new URLSearchParams(new URL(message.url).hash.slice(1)).get("token")!; }
 async function login(pass = password) {
@@ -37,6 +42,39 @@ test("preview configuration is local-only and missing provider config fails safe
   assert.throws(() => createEmailSender("https://studio.example", { EMAIL_DELIVERY: "preview" }));
   assert.throws(() => createEmailSender(origin, { EMAIL_DELIVERY: "preview", VERCEL: "1" }));
   assert.throws(() => createEmailSender(origin, { EMAIL_DELIVERY: "resend" }));
+});
+test("verification and reset respond before queued slow delivery, with identical unknown-account responses", { timeout: 15_000 }, async () => {
+  const email = "slow-delivery@example.com";
+  await request("/sign-up/email", { name: "Slow Delivery", email, password });
+  for (const endpoint of ["/send-verification-email", "/request-password-reset"]) {
+    await connection.db.collection("rateLimit").deleteMany({});
+    messages.length = 0;
+    let release!: () => void;
+    deliveryGate = new Promise<void>((resolve) => { release = resolve; });
+    holdQueue = true;
+    let work: Promise<void> | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const registered = await Promise.race([
+        request(endpoint, { email }),
+        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("Public response waited for email delivery")), 4000); }),
+      ]);
+      clearTimeout(timer);
+      assert.equal(registered.status, 200);
+      assert.equal(queued.length, 1); assert.equal(messages.length, 0);
+      work = queued.shift()!(); // Simulate post-response execution with a sender still blocked.
+      await connection.db.collection("rateLimit").deleteMany({});
+      const unknown = await request(endpoint, { email: "missing-slow@example.com" });
+      assert.equal(unknown.status, registered.status);
+      assert.deepEqual(await unknown.json(), await registered.json());
+      assert.equal(queued.length, 0); assert.equal(messages.length, 0);
+    } finally {
+      clearTimeout(timer); release(); await work;
+      for (const task of queued.splice(0)) await task();
+      deliveryGate = undefined; holdQueue = false;
+    }
+    assert.equal(messages.length, 1); assert.equal(messages[0].to, email);
+  }
 });
 test("verification links are explicit, single-use and update authoritative identity", async () => {
   const session = await login();

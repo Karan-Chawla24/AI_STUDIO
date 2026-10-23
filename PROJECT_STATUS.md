@@ -1,6 +1,6 @@
 # Project status — Educational Video Studio
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 This is the source of truth for implementation progress. The PRD defines product scope; the API, database and system-design documents define the implementation contracts. Stitch boards are visual references, not proof that features work.
 
@@ -42,6 +42,13 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-23 — Review fix: account email timing
+
+- Fixed the P2 account-enumeration issue: verification and reset callbacks now schedule delivery with Next.js `after()` instead of awaiting the sender before the public acknowledgement. Provider delay/timeouts no longer extend the response.
+- Kept the generic responses, 600 ms local-processing floor, expiry, rate limits and verification marker ordering. Scheduled delivery failures are caught and log only a generic code.
+- Added a regression for both endpoints with an unresolved sender, checking response completion and identical registered/unknown acknowledgements before delivery is released, then confirming eventual delivery.
+- All 16 authentication/email tests passed, including the delayed-sender regression for both endpoints. ESLint, TypeScript and production build passed. No schema, credentials or feature scope changed; F05 remains awaiting owner review.
 
 ### 2026-10-22 — F05 owned draft creation
 
