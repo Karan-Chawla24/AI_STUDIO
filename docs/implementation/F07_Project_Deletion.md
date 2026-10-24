@@ -44,4 +44,4 @@ Delete actions appear on project cards and saved draft details. The native modal
 
 Automated tests use temporary MongoDB replica sets, never owner data. See F07-browser-verification.json and PROJECT_STATUS.md for completed checks. F08 editor/autosave is the next separate milestone.
 
-Atlas activation note: the current database user was denied collMod on AI_Studio.idempotencyRecords. F07 is verified in isolation but requires that migration permission before Atlas deletion can be tested. The failed migration is retryable after permissions are corrected. Do not start the cleanup worker until verification succeeds.
+Atlas activation update (2026-10-24): the owner added dbAdmin scoped to AI_Studio. The pending F07 migration applied successfully through plan:migrate; deletion:verify passed. The local cleanup worker is running and deletion is ready for owner testing. The earlier collMod permission blocker is resolved.

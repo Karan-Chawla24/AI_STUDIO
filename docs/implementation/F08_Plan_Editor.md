@@ -6,7 +6,7 @@ Implemented 2026-10-24. This milestone adds manual draft editing. AI suggestions
 
 Use Node 24 and the existing MongoDB/auth environment. From studio, run `npm run plan:migrate` and `npm run plan:verify`. The migration includes F07 prerequisites. Start the app on port 3001; run `npm run deletion:worker` alongside it once migrations pass.
 
-Atlas activation is currently blocked by the database user's missing collMod permission on AI_Studio.idempotencyRecords (F07 prerequisite). F08 also requires collMod for projects and auditEvents. Correct migration permissions, then rerun the commands; no new application secrets are needed. Test fixtures always use a temporary replica set.
+Atlas activation passed on 2026-10-24 after the owner added dbAdmin scoped to AI_Studio. plan:migrate applied F07/F08, and plan:verify plus deletion:verify passed. The local cleanup worker is running; owner testing can begin. No new application secrets were needed. Test fixtures always use a temporary replica set.
 
 ## Contract and storage
 

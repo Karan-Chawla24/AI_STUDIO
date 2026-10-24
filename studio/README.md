@@ -58,4 +58,4 @@ F06: run `npm run library:migrate` and `npm run library:verify` before opening P
 
 F07: run `npm run deletion:migrate` and `npm run deletion:verify` before deleting drafts. Run `npm run deletion:worker` alongside the web app for durable cleanup recovery. `npm run test:deletion` uses isolated fixtures. See [deletion setup and test checklist](../docs/implementation/F07_Project_Deletion.md).
 
-F08 adds the plan editor and autosave at saved draft URLs and `/projects/:id/plan`. Run `npm run plan:migrate`, `npm run plan:verify` and `npm run test:plan`. Atlas activation is pending collMod permission; see [editor setup and test checklist](../docs/implementation/F08_Plan_Editor.md).
+F08 adds the plan editor and autosave at saved draft URLs and `/projects/:id/plan`. Run `npm run plan:migrate`, `npm run plan:verify` and `npm run test:plan`. Atlas activation and migration verification passed on 2026-10-24; see [editor setup and test checklist](../docs/implementation/F08_Plan_Editor.md).

@@ -6,7 +6,7 @@ This is the source of truth for implementation progress. The PRD defines product
 
 ## Current milestone
 
-**F08 — Plan editor/autosave implemented and verified in isolation; Atlas activation blocked.** Owner authorized moving to F08. Atlas still denies collMod on AI_Studio.idempotencyRecords (F07 prerequisite). After permissions are updated, run plan:migrate and plan:verify, then test F07/F08 before starting F09.
+**F07/F08 — Project deletion and plan editor/autosave are activated in Atlas and ready for owner testing.** The owner added dbAdmin on AI_Studio; both migrations and schema/index verification passed. Test deletion and editing before starting F09.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -22,8 +22,8 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F04 | Email verification and password recovery | Expiring links, resend limits and generic recovery responses tested | Complete with local previews; owner authorized progression |
 | F05 | Project creation and persistence | User can create/read a draft; foreign-owned IDs return 404 | Complete; owner authorized progression |
 | F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Complete; owner authorized progression |
-| F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Implemented; Atlas migration blocked by collMod permission |
-| F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Implemented; Atlas activation blocked by migration permission |
+| F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Activated in Atlas; awaiting owner testing |
+| F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Activated in Atlas; awaiting owner testing |
 | F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Planned |
 | F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Planned |
 | F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Planned |
@@ -42,6 +42,14 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-24 — Atlas activation for F07/F08
+
+- Owner added dbAdmin scoped to AI_Studio while retaining the existing read/write role. Reran plan:migrate, which successfully applied the pending F07 prerequisite and F08 plan schema.
+- plan:verify and deletion:verify both passed against Atlas. The previous collMod blocker is resolved; credentials and application code were unchanged.
+- Started the local deletion cleanup worker after verification. The existing production preview on http://localhost:3001 responds successfully; sign-in returns 200 and unauthenticated project access returns 401.
+- Prior 63 isolated regression tests and browser checks remain the feature evidence; no tests edited or deleted the owner's live drafts. This activation changed schemas/indexes and documentation only, so application tests/build were not repeated.
+- Owner can now test create/edit/autosave/reload, two-tab conflict handling and confirmed deletion. Stop for owner review before F09. Local preview/worker require restarting after the computer or processes stop; production supervision remains F24.
 
 ### 2026-10-24 — F08 manual plan editor and autosave
 
