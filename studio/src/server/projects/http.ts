@@ -8,6 +8,7 @@ import { createProject, readProject } from "./service";
 import { cursorKeys, dashboard, listProjects, parseLibraryQuery } from "./library";
 import { verifyLibrary } from "./library-schema";
 import { deleteProject, readDeletion, validateDelete } from "./deletion";
+import { updatePlan, validatePlan } from "./plan";
 
 type Identity = NonNullable<Awaited<ReturnType<typeof getIdentity>>>;
 export function csrfToken(identity: Identity, secret: string, expires = Date.now() + 3600_000) {
@@ -60,9 +61,10 @@ export async function projectRequest(request: Request, deps: { connection: Datab
       return Response.json({ data, requestId }, { headers });
     }
     if (request.method === "GET" && new URL(request.url).pathname === "/api/v1/csrf") return Response.json({ data: { token: csrfToken(deps.identity, deps.config.secret) }, requestId }, { headers });
-    if (!((request.method === "POST" && !projectId) || (request.method === "DELETE" && projectId))) throw new ProjectError("METHOD_NOT_ALLOWED", "This action is not available.", 405);
+    if (!((request.method === "POST" && !projectId) || (["DELETE", "PATCH"].includes(request.method) && projectId))) throw new ProjectError("METHOD_NOT_ALLOWED", "This action is not available.", 405);
     if (request.headers.get("origin") !== deps.config.origin || request.headers.get("sec-fetch-site") === "cross-site" || !validCsrf(request.headers.get("x-csrf-token"), deps.identity, deps.config.secret)) throw new ProjectError("CSRF_FAILED", "Refresh your session and try again.", 403);
     const body = await strictJSON(request);
+    if (request.method === "PATCH" && projectId) return Response.json({ data: await updatePlan(deps.connection, deps.identity.user.id, projectId, validatePlan(body), requestId), requestId }, { headers });
     const key = request.headers.get("idempotency-key");
     if (!key) throw new ProjectError("PRECONDITION_REQUIRED", "An Idempotency-Key is required.", 428);
     if (!/^[\x20-\x7e]{16,128}$/.test(key)) throw new ProjectError("VALIDATION_FAILED", "Use a retry key of 16–128 printable characters.", 422);
@@ -81,5 +83,5 @@ export async function projectRequest(request: Request, deps: { connection: Datab
 export function projectFailure(error: unknown, requestId = randomUUID(), headers = new Headers({ "X-Request-Id": requestId, "Cache-Control": "private, no-store", Vary: "Cookie" })) {
   const failure = error instanceof ProjectError ? error : new ProjectError("SERVICE_UNAVAILABLE", "Project services are temporarily unavailable. Retry with the same details.", 503);
   if ([429, 503].includes(failure.status)) headers.set("Retry-After", failure.status === 429 ? "60" : "3");
-  return Response.json({ error: { code: failure.code, message: failure.message, retryable: [429, 503].includes(failure.status), fieldErrors: failure.fieldErrors, details: {}, action: failure.status === 401 ? "SIGN_IN" : [429, 503].includes(failure.status) ? "RETRY_LATER" : "NONE" }, requestId }, { status: failure.status, headers });
+  return Response.json({ error: { code: failure.code, message: failure.message, retryable: [429, 503].includes(failure.status), fieldErrors: failure.fieldErrors, details: failure.details, action: failure.status === 401 ? "SIGN_IN" : [429, 503].includes(failure.status) ? "RETRY_LATER" : "NONE" }, requestId }, { status: failure.status, headers });
 }

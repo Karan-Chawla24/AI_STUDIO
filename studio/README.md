@@ -42,7 +42,7 @@ F04 adds verification and password recovery. Set `EMAIL_DELIVERY=preview`, reque
 
 ## Database tooling
 
-F05 adds owned draft creation at `/projects/new` and saved detail pages at `/projects/<id>`. Run `npm run projects:migrate` and `npm run projects:verify` before use. `npm run test:projects` uses an isolated replica set. F06 adds the project library and dashboard; the editor and generation tools remain planned. See [F05 setup and owner checklist](../docs/implementation/F05_Project_Creation.md).
+F05 adds owned draft creation at `/projects/new` and saved detail pages at `/projects/<id>`. Run `npm run projects:migrate` and `npm run projects:verify` before use. `npm run test:projects` uses an isolated replica set. F06 adds the project library and dashboard; the plan editor is implemented in F08; generation remains planned. See [F05 setup and owner checklist](../docs/implementation/F05_Project_Creation.md).
 
 See [F02 database setup and recovery](../docs/implementation/F02_Database_Foundation.md). Copy `.env.example` to `.env.local` and configure your own replica-set/Atlas database before running `npm run db:check`, `npm run db:migrate` and `npm run db:verify`. Migrations are explicit and never run at startup.
 
@@ -57,3 +57,5 @@ Never copy `.env.local`, response caches or generated media from the POC into th
 F06: run `npm run library:migrate` and `npm run library:verify` before opening Projects or Home. `npm run test:library` checks owner isolation, search, cursor pagination and dashboard data. See [F06 setup and owner checklist](../docs/implementation/F06_Project_Library.md).
 
 F07: run `npm run deletion:migrate` and `npm run deletion:verify` before deleting drafts. Run `npm run deletion:worker` alongside the web app for durable cleanup recovery. `npm run test:deletion` uses isolated fixtures. See [deletion setup and test checklist](../docs/implementation/F07_Project_Deletion.md).
+
+F08 adds the plan editor and autosave at saved draft URLs and `/projects/:id/plan`. Run `npm run plan:migrate`, `npm run plan:verify` and `npm run test:plan`. Atlas activation is pending collMod permission; see [editor setup and test checklist](../docs/implementation/F08_Plan_Editor.md).

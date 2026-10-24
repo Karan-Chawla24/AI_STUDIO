@@ -9,7 +9,7 @@
 - Run `npm run check` and `npm run build` for relevant scaffold changes.
 - Use `dev` for ongoing development. After each completed change, update `../PROJECT_STATUS.md`, run relevant checks, then commit and push to `origin/dev`. The user authorized this ongoing workflow. Never include secrets, generated caches or unrelated local files; report any failed push accurately.
 - Keep `main` for reviewed milestones. Merge `dev` into `main` through a pull request when the user approves promotion; do not push development changes directly to `main`.
-- Owner review gate (2026-10-23): owner authorized F07 project deletion. Finish and provide a working test flow, then stop for user testing before F08 or another feature.
+- Owner review gate (2026-10-24): owner authorized F08 plan editor/autosave while Atlas activation remains pending. Finish and provide a working test flow, then stop for user testing before F09 or another feature.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -77,7 +77,7 @@ export async function cleanDeletion(connection: DatabaseConnection, id: string) 
     if (project && (project.lifecycle !== "DELETING" || project.deletionId !== id || project.activeJobId || project.activeStoryboardId || project.latestRenderId || project.currentRenderId || project.publishFence.activeIntentId)) {
       await jobs.updateOne({ _id: id, state: "ACCEPTED" }, { $set: { state: "REQUIRES_ATTENTION", updatedAt: new Date(), error: "UNSUPPORTED_DEPENDENCIES" }, $inc: { resourceVersion: 1 } }, { session }); return;
     }
-    if (project) await connection.db.collection<Project>("projects").updateOne({ _id: job.targetId, ownerId: job.ownerId, lifecycle: "DELETING", deletionId: id }, { $set: { lifecycle: "DELETED", title: "Deleted project", titleSort: "deleted project", originalIdea: "Deleted", audience: null, niche: null, "settings.voiceKey": null, "settings.targetDurationSeconds": 75, updatedAt: new Date() }, $inc: { resourceVersion: 1 } }, { session });
+    if (project) await connection.db.collection<Project>("projects").updateOne({ _id: job.targetId, ownerId: job.ownerId, lifecycle: "DELETING", deletionId: id }, { $set: { lifecycle: "DELETED", title: "Deleted project", titleSort: "deleted project", originalIdea: "Deleted", refinedIdea: null, audience: null, niche: null, "settings.voiceKey": null, "settings.targetDurationSeconds": 75, updatedAt: new Date() }, $inc: { resourceVersion: 1 } }, { session });
     // Creation receipts contain the original idea; purge them with the project, not only on TTL.
     await connection.db.collection("idempotencyRecords").updateMany({ ownerId: job.ownerId, method: "POST", routeKey: "/api/v1/projects", operationId: job.targetId }, { $set: { responseBody: {} } }, { session });
     const now = new Date();

@@ -7,6 +7,7 @@ import { DatabaseError } from "../db/config";
 import { projectSchemas } from "./schema";
 import { migrateLibrary, verifyLibrary } from "./library-schema";
 import { deletionShape } from "./deletion-shapes";
+import { planShape } from "./plan-shapes";
 const id = "F07_0001_project_deletion";
 const text = { bsonType: "string", minLength: 1, maxLength: 200 };
 const uuid = { bsonType: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" };
@@ -22,7 +23,7 @@ async function verifyShape(db: Db) {
   if (!tombstone || !isDeepStrictEqual(tombstone.key, tombstoneIndex.key) || !isDeepStrictEqual(tombstone.partialFilterExpression, tombstoneIndex.partialFilterExpression) || tombstone.expireAfterSeconds !== tombstoneIndex.expireAfterSeconds || tombstone.unique || tombstone.hidden || tombstone.sparse) throw new DatabaseError("DELETION_INDEX_DRIFT", "Tombstone retention index requires repair.");
   for (const [name, expected] of Object.entries({ ...extensions, deletionJobs: validator })) {
     const info = await db.listCollections({ name }, { nameOnly: false }).next();
-    if (!isDeepStrictEqual(info?.options?.validator, expected) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("DELETION_SCHEMA_DRIFT", "Deletion schema requires migration or repair.");
+    if ((!isDeepStrictEqual(info?.options?.validator, expected) && !isDeepStrictEqual(info?.options?.validator, planShape(name, expected))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("DELETION_SCHEMA_DRIFT", "Deletion schema requires migration or repair.");
   }
   const actual = await db.collection("deletionJobs").listIndexes().toArray();
   for (const expected of indexes) {

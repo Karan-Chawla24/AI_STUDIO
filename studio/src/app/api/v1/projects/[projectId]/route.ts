@@ -13,3 +13,5 @@ export async function DELETE(request: Request, context: { params: Promise<{ proj
   }
   return response;
 }
+
+export async function PATCH(request: Request, context: { params: Promise<{ projectId: string }> }) { return projectRoute(request, (await context.params).projectId); }

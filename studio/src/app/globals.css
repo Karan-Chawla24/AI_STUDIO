@@ -207,3 +207,21 @@ nav { display: grid; gap: 6px; margin-top: 48px; }
 .delete-dialog-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
 .button.danger { background: #984735; color: white; border: 1px solid #984735; }
 @media (max-width: 480px) { .delete-dialog { padding: 24px; } .delete-dialog-actions .button { width: 100%; } }
+
+.plan-save-bar { display: flex; justify-content: space-between; gap: 16px; padding: 16px 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--tint); font-size: 13px; margin-bottom: 24px; }
+.plan-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, .45fr); gap: 28px; align-items: start; }
+.plan-layout .project-form { margin: 0; width: 100%; }
+.plan-reference { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+.plan-reference h2 { font-size: 24px; margin: 16px 0; }
+.plan-reference .saved-idea { font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 24px; }
+.plan-conflict { padding: 24px; border: 1px solid var(--warning); background: #fbf6e9; border-radius: 12px; margin: 24px 0; }
+.plan-conflict h2 { margin-bottom: 12px; font-size: 24px; }
+.plan-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; }
+.plan-compare > div { min-width: 0; background: var(--surface); border-radius: 8px; padding: 20px; }
+.plan-compare h3 { font-size: 18px; margin-bottom: 16px; }
+.plan-compare strong { font-size: 12px; }
+.plan-compare p { font-size: 14px; margin-bottom: 12px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; }
+.plan-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.plan-editor .auth-error .button { margin-top: 12px; }
+@media(max-width: 900px) { .plan-layout { grid-template-columns: 1fr; } }
+@media(max-width: 560px) { .plan-compare { grid-template-columns: 1fr; } .plan-actions .button { width: 100%; } .plan-save-bar { flex-wrap: wrap; } }

@@ -2,7 +2,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 
 export class ProjectError extends Error {
-  constructor(public code: string, message: string, public status: number, public fieldErrors: { path: string; code: string; message: string }[] = []) { super(message); }
+  constructor(public code: string, message: string, public status: number, public fieldErrors: { path: string; code: string; message: string }[] = [], public details: Record<string, unknown> = {}) { super(message); }
 }
 export function uuid7() {
   const bytes = randomBytes(16); bytes.writeUIntBE(Date.now(), 0, 6);
@@ -29,7 +29,7 @@ export function validateCreate(input: unknown): CreateProject {
 }
 export type Project = {
   _id: string; schemaVersion: 1; ownerId: string; createdAt: Date; updatedAt: Date; revision: number; resourceVersion: number;
-  title: string; titleSort: string; originalIdea: string; audience: string | null; niche: string | null; refinedIdea: null;
+  title: string; titleSort: string; originalIdea: string; audience: string | null; niche: string | null; refinedIdea: string | null;
   settings: { voiceKey: "INDIAN_MALE" | "INDIAN_FEMALE" | null; captionStyle: "CLEAN"; musicAssetId: null; targetDurationSeconds: number };
   nextStoryboardVersion: 1; activeStoryboardId: null; currentSnapshotHash: null; approval: null; latestRenderId: null; currentRenderId: null; activeJobId: null;
   socialCaptionDraft: null; warnings: []; lifecycle: "ACTIVE" | "DELETING" | "DELETED"; deletedAt: Date | null; deletionId: string | null;
@@ -39,7 +39,7 @@ export type Project = {
 export function projectDTO(project: Project) {
   return { id: project._id, title: project.title, revision: project.revision, resourceVersion: project.resourceVersion,
     creationStatus: "DRAFT" as const, publicationStatus: "NOT_PUBLISHED" as const, stale: false, durationSeconds: null, thumbnailAvailable: false,
-    createdAt: project.createdAt.toISOString(), updatedAt: project.updatedAt.toISOString(), allowedActions: ["OPEN", "DELETE"], originalIdea: project.originalIdea,
+    createdAt: project.createdAt.toISOString(), updatedAt: project.updatedAt.toISOString(), allowedActions: ["OPEN", "EDIT_PLAN", "DELETE"], originalIdea: project.originalIdea,
     refinedIdea: project.refinedIdea, audience: project.audience, niche: project.niche, activeStoryboardId: null, storyboardVersion: null,
     settings: project.settings, currentSnapshotHash: null, approval: null, activeJob: null, latestRender: null, warnings: [] };
 }

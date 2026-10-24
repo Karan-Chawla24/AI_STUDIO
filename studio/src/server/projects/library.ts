@@ -46,7 +46,7 @@ async function active(connection: DatabaseConnection, ownerId: string) {
   if (!await connection.db.collection<UserProfile>("userProfiles").findOne({ _id: ownerId, lifecycle: "ACTIVE" })) throw new ProjectError("ACCOUNT_DELETING", "This account cannot access projects.", 403);
 }
 function summary(project: Project): ProjectSummary {
-  return { id: project._id, title: project.title, revision: project.revision, resourceVersion: project.resourceVersion, creationStatus: project.statusProjection.creationStatus, publicationStatus: project.statusProjection.publicationStatus, stale: project.statusProjection.stale, durationSeconds: null, thumbnailAvailable: false, createdAt: project.createdAt.toISOString(), updatedAt: project.updatedAt.toISOString(), allowedActions: ["OPEN", "DELETE"] };
+  return { id: project._id, title: project.title, revision: project.revision, resourceVersion: project.resourceVersion, creationStatus: project.statusProjection.creationStatus, publicationStatus: project.statusProjection.publicationStatus, stale: project.statusProjection.stale, durationSeconds: null, thumbnailAvailable: false, createdAt: project.createdAt.toISOString(), updatedAt: project.updatedAt.toISOString(), allowedActions: ["OPEN", "EDIT_PLAN", "DELETE"] };
 }
 const projection = { _id: 1, title: 1, titleSort: 1, revision: 1, resourceVersion: 1, statusProjection: 1, createdAt: 1, updatedAt: 1 };
 export async function listProjects(connection: DatabaseConnection, ownerId: string, query: Query, keys: CursorKeys, now = Date.now()): Promise<ProjectPage> {

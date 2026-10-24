@@ -1,12 +1,12 @@
 # Project status — Educational Video Studio
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 This is the source of truth for implementation progress. The PRD defines product scope; the API, database and system-design documents define the implementation contracts. Stitch boards are visual references, not proof that features work.
 
 ## Current milestone
 
-**F07 — Project deletion implemented and verified in isolation; Atlas activation blocked.** The configured database user lacks collMod permission on AI_Studio.idempotencyRecords. Apply deletion:migrate and deletion:verify after permissions are updated, then test. Do not start F08 until owner review.
+**F08 — Plan editor/autosave implemented and verified in isolation; Atlas activation blocked.** Owner authorized moving to F08. Atlas still denies collMod on AI_Studio.idempotencyRecords (F07 prerequisite). After permissions are updated, run plan:migrate and plan:verify, then test F07/F08 before starting F09.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -23,7 +23,7 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F05 | Project creation and persistence | User can create/read a draft; foreign-owned IDs return 404 | Complete; owner authorized progression |
 | F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Complete; owner authorized progression |
 | F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Implemented; Atlas migration blocked by collMod permission |
-| F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Planned |
+| F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Implemented; Atlas activation blocked by migration permission |
 | F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Planned |
 | F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Planned |
 | F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Planned |
@@ -42,6 +42,15 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-24 — F08 manual plan editor and autosave
+
+- Owner requested the next feature despite the pending Atlas activation. Added the Mineral Signal plan editor at saved draft URLs and /projects/:id/plan, with editable title/refined idea/audience/niche and a read-only original-idea reference.
+- Added 800 ms sequential autosave, visible save/review states, preservation of typing during in-flight saves, bounded network requests and uncertain-write reconciliation. Two-tab conflicts retain local text and show both versions for an explicit choice. Optional fields can be cleared. Dirty-page links/reload warn; local edits are in-memory, not a durable browser draft store.
+- Added owner/session/CSRF-protected PATCH with required revision, strict validation, normalized title search, transactional profile/project fences, version increments and redacted audit. No-op changes do not advance revisions. Original idea/settings/state remain immutable through this route. Deletion cleanup now scrubs refinedIdea too.
+- Added F08_0001_plan_editor validator expansion; prior migration checksums remain unchanged and known forward-compatible shapes are verified. No new provider integration, environment variables or indexes. Existing future storyboard/job states are not enabled by this milestone.
+- All 63 isolated regression tests passed, including eight plan tests for revision races, ownership, transaction rollback, deletion races and API behavior. Browser checks passed autosave/reload, typing during a slow save, both conflict-resolution choices, optional-field clearing, lost-response reconciliation and offline recovery. Desktop and 390px/320px layouts checked with zero page errors. ESLint, TypeScript and the final production build passed.
+- Atlas migration retry confirmed error 8000 AtlasError: configured user cannot collMod AI_Studio.idempotencyRecords. F08 activation is blocked on this F07 prerequisite; no live owner drafts were edited by tests. Correct migration permission, run plan:migrate and plan:verify, then start deletion:worker. See docs/implementation/F08_Plan_Editor.md for setup and owner checklist. Stop before F09.
 
 ### 2026-10-23 — F07 confirmed project deletion
 

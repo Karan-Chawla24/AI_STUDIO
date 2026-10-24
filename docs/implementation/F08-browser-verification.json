@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-24",
+  "autosaveReload": "passed",
+  "typingDuringSave": "passed",
+  "twoTabConflict": "preserved local edits, explicit overwrite passed",
+  "useSavedVersion": "passed",
+  "optionalFieldClearing": "passed",
+  "lostAcknowledgement": "reconciled from server",
+  "offlineRecovery": "preserved and saved after review",
+  "mobileWidths": [
+    390,
+    320
+  ],
+  "pageErrors": [],
+  "database": "isolated temporary replica set"
+}

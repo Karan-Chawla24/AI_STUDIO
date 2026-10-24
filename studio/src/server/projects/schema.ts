@@ -6,6 +6,7 @@ import { runMigration } from "../db/migrations";
 import { migrateAuth, verifyAuthSchema } from "../auth/schema";
 import { DatabaseError } from "../db/config";
 import { deletionShape } from "./deletion-shapes";
+import { planShape } from "./plan-shapes";
 
 const text = (max = 200) => ({ bsonType: "string", minLength: 1, maxLength: max });
 const nullableText = (max: number) => ({ bsonType: ["string", "null"], minLength: 1, maxLength: max });
@@ -43,7 +44,7 @@ const checksum = createHash("sha256").update(JSON.stringify({ projectSchemas, pr
 async function verifyShape(db: Db) {
   for (const [name, validator] of Object.entries(projectSchemas)) {
     const info = await db.listCollections({ name }, { nameOnly: false }).next();
-    if ((!isDeepStrictEqual(info?.options?.validator, validator) && !isDeepStrictEqual(info?.options?.validator, deletionShape(name, validator))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("PROJECT_SCHEMA_DRIFT", "Project collection validation differs from the required schema.");
+    if ((!isDeepStrictEqual(info?.options?.validator, validator) && !isDeepStrictEqual(info?.options?.validator, deletionShape(name, validator)) && !isDeepStrictEqual(info?.options?.validator, planShape(name, deletionShape(name, validator)))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("PROJECT_SCHEMA_DRIFT", "Project collection validation differs from the required schema.");
     const actual = await db.collection(name).listIndexes().toArray();
     for (const index of projectIndexes[name]) {
       const found = actual.find((i) => i.name === index.name);
