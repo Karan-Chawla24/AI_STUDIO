@@ -1,4 +1,5 @@
 import "server-only";
+import type { jobDTO } from "./ideas-model";
 import { randomBytes } from "node:crypto";
 
 export class ProjectError extends Error {
@@ -31,16 +32,16 @@ export type Project = {
   _id: string; schemaVersion: 1; ownerId: string; createdAt: Date; updatedAt: Date; revision: number; resourceVersion: number;
   title: string; titleSort: string; originalIdea: string; audience: string | null; niche: string | null; refinedIdea: string | null;
   settings: { voiceKey: "INDIAN_MALE" | "INDIAN_FEMALE" | null; captionStyle: "CLEAN"; musicAssetId: null; targetDurationSeconds: number };
-  nextStoryboardVersion: 1; activeStoryboardId: null; currentSnapshotHash: null; approval: null; latestRenderId: null; currentRenderId: null; activeJobId: null;
+  nextStoryboardVersion: 1; activeStoryboardId: null; currentSnapshotHash: null; approval: null; latestRenderId: null; currentRenderId: null; activeJobId: string | null;
   socialCaptionDraft: null; warnings: []; lifecycle: "ACTIVE" | "DELETING" | "DELETED"; deletedAt: Date | null; deletionId: string | null;
   publishFence: { epoch: number; blocked: boolean; activeIntentId: null; reason: string | null };
-  statusProjection: { creationStatus: "DRAFT"; publicationStatus: "NOT_PUBLISHED"; stale: false; computedAt: Date };
+  statusProjection: { creationStatus: "DRAFT" | "PLANNING" | "NEEDS_ATTENTION"; publicationStatus: "NOT_PUBLISHED"; stale: false; computedAt: Date };
 };
-export function projectDTO(project: Project) {
+export function projectDTO(project: Project, activeJob: ReturnType<typeof jobDTO> | null = null) {
   return { id: project._id, title: project.title, revision: project.revision, resourceVersion: project.resourceVersion,
-    creationStatus: "DRAFT" as const, publicationStatus: "NOT_PUBLISHED" as const, stale: false, durationSeconds: null, thumbnailAvailable: false,
+    creationStatus: project.statusProjection.creationStatus, publicationStatus: "NOT_PUBLISHED" as const, stale: false, durationSeconds: null, thumbnailAvailable: false,
     createdAt: project.createdAt.toISOString(), updatedAt: project.updatedAt.toISOString(), allowedActions: ["OPEN", "EDIT_PLAN", "DELETE"], originalIdea: project.originalIdea,
     refinedIdea: project.refinedIdea, audience: project.audience, niche: project.niche, activeStoryboardId: null, storyboardVersion: null,
-    settings: project.settings, currentSnapshotHash: null, approval: null, activeJob: null, latestRender: null, warnings: [] };
+    settings: project.settings, currentSnapshotHash: null, approval: null, activeJob, latestRender: null, warnings: [] };
 }
 export type ProjectDTO = ReturnType<typeof projectDTO>;

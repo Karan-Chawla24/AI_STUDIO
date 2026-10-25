@@ -36,7 +36,11 @@
     "db:check": "node --conditions=react-server --import tsx scripts/db.ts check",
     "db:status": "node --conditions=react-server --import tsx scripts/db.ts status",
     "db:migrate": "node --conditions=react-server --import tsx scripts/db.ts migrate",
-    "db:verify": "node --conditions=react-server --import tsx scripts/db.ts verify"
+    "db:verify": "node --conditions=react-server --import tsx scripts/db.ts verify",
+    "test:ideas": "node --conditions=react-server --import tsx --test --test-concurrency=1 tests/ideas.test.ts",
+    "ideas:migrate": "node --conditions=react-server --import tsx scripts/ideas-db.ts migrate",
+    "ideas:verify": "node --conditions=react-server --import tsx scripts/ideas-db.ts verify",
+    "ideas:worker": "node --conditions=react-server --import tsx scripts/ideas-db.ts worker"
   },
   "dependencies": {
     "@better-auth/mongo-adapter": "1.7.12",

@@ -1,12 +1,12 @@
 # Project status — Educational Video Studio
 
-Last updated: 2026-10-24
+Last updated: 2026-10-25
 
 This is the source of truth for implementation progress. The PRD defines product scope; the API, database and system-design documents define the implementation contracts. Stitch boards are visual references, not proof that features work.
 
 ## Current milestone
 
-**F07/F08 — Project deletion and plan editor/autosave are activated in Atlas and ready for owner testing.** The owner added dbAdmin on AI_Studio; both migrations and schema/index verification passed. Test deletion and editing before starting F09.
+**F09 — AI idea suggestions and refinement are implemented.** Atlas migration/verification passed. The application now supports background idea requests and explicit proposal review. Live Gemini testing is pending configuration: `studio/.env.local` has empty `GEMINI_API_KEY` / `GEMINI_MODEL` entries; permission to reuse POC settings was requested. Finish F09 owner testing before F10.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -22,9 +22,9 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F04 | Email verification and password recovery | Expiring links, resend limits and generic recovery responses tested | Complete with local previews; owner authorized progression |
 | F05 | Project creation and persistence | User can create/read a draft; foreign-owned IDs return 404 | Complete; owner authorized progression |
 | F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Complete; owner authorized progression |
-| F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Activated in Atlas; awaiting owner testing |
-| F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Activated in Atlas; awaiting owner testing |
-| F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Planned |
+| F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Complete; owner authorized progression |
+| F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Complete; owner authorized progression |
+| F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Implemented; live Gemini configuration and owner testing pending |
 | F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Planned |
 | F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Planned |
 | F12 | Compilation and storyboard approval | Approval waits for saves/compilation; relevant edits invalidate approval | Planned |
@@ -42,6 +42,15 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-25 — F09 idea proposals and refinement
+
+- Owner authorized the next feature. Added Explore ideas and Refine this plan to the Mineral Signal plan editor, optional guidance/count, durable request status, reload recovery, cancellation, review cards, explicit acceptance/dismissal and paginated suggestion history. Acceptance changes refinedIdea only; original idea/title are preserved. Manual edits can continue during provider work; stale results cannot overwrite them.
+- Added verified-email/owner/session/CSRF-protected commands, strict request/output validation, signed list cursors, conditional detail reads, idempotency and a transactional one-active-job/project guard. Twenty planning admissions per rolling hour/owner are enforced across projects. Project and dashboard projections reflect active work.
+- Added F09_0001_idea_proposals migration, strict job/proposal/provider-journal collections and indexes. Prior migration checksums remain unchanged. Atlas migration and final verification passed. Project deletion purges planning content and fences delayed completions.
+- Added server-only Gemini structured-output adapter and a durable MongoDB polling worker. No automatic provider retry/model fallback. Lost responses/expired running leases require operator review and hold the project guard. The broader F14 outbox/reservation/linked-retry/settlement infrastructure remains deferred; implemented boundaries are documented in docs/implementation/F09_Idea_Suggestions.md.
+- Existing 63 regression tests passed alongside the initial F09 suite. F09 now has 12 integration tests, including transaction rollback, hourly quota and edits during active work. The final affected regression run passed all 49 tests (75 total tests across the suite, with unaffected auth/email/DB checks passing earlier). TypeScript, lint and the production build passed. Browser checks passed verification gating, queued reload, explicit acceptance/persistence, cancellation and desktop/390px/320px layout with zero page errors; provider responses were injected only in the isolated test runner.
+- Added blank ignored Gemini settings and documented configuration. No live Gemini call or worker startup has occurred because the application key/model are empty. No owner drafts were edited by tests. Production preview is running at http://localhost:3001; sign-in returned 200 and anonymous project API access returned 401. The deletion worker was restarted; the idea worker awaits configuration. Stop before F10 for configuration and owner review.
 
 ### 2026-10-24 — Atlas activation for F07/F08
 

@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-25",
+  "verificationGate": "passed",
+  "queuedReload": "passed",
+  "reviewBeforeApply": "passed",
+  "acceptancePersistence": "passed",
+  "cancellation": "passed",
+  "mobileWidths": [
+    390,
+    320
+  ],
+  "pageErrors": [],
+  "provider": "injected deterministic provider; no live API spend",
+  "database": "isolated temporary replica set"
+}

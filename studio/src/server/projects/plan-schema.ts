@@ -1,3 +1,4 @@
+import { ideasShape } from "./ideas-shapes";
 import "server-only";
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
@@ -14,7 +15,7 @@ const checksum = createHash("sha256").update(JSON.stringify(extensions)).digest(
 async function verifyShape(db: Db) {
   for (const [name, validator] of Object.entries(extensions)) {
     const info = await db.listCollections({ name }, { nameOnly: false }).next();
-    if (!isDeepStrictEqual(info?.options?.validator, validator) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("PLAN_SCHEMA_DRIFT", "Plan schema requires migration or repair.");
+    if ((!isDeepStrictEqual(info?.options?.validator, validator) && !isDeepStrictEqual(info?.options?.validator, ideasShape(name, validator))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("PLAN_SCHEMA_DRIFT", "Plan schema requires migration or repair.");
   }
 }
 export async function verifyPlan(db: Db) {

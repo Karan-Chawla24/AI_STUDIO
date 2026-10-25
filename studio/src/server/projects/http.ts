@@ -1,9 +1,10 @@
 import "server-only";
+import { projectView } from "./project-view";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import type { getIdentity } from "../auth/service";
 import { readAuthConfig } from "../auth/config";
 import type { DatabaseConnection } from "../db/client";
-import { ProjectError, projectDTO, validateCreate } from "./model";
+import { ProjectError, validateCreate } from "./model";
 import { createProject, readProject } from "./service";
 import { cursorKeys, dashboard, listProjects, parseLibraryQuery } from "./library";
 import { verifyLibrary } from "./library-schema";
@@ -14,7 +15,7 @@ type Identity = NonNullable<Awaited<ReturnType<typeof getIdentity>>>;
 export function csrfToken(identity: Identity, secret: string, expires = Date.now() + 3600_000) {
   return `${expires}.${createHmac("sha256", secret).update(`csrf:${identity.user.id}:${identity.sessionId}:${expires}`).digest("hex")}`;
 }
-function validCsrf(value: string | null, identity: Identity, secret: string) {
+export function validCsrf(value: string | null, identity: Identity, secret: string) {
   if (!value || !/^\d{13}\.[a-f0-9]{64}$/.test(value)) return false;
   const expires = Number(value.split(".")[0]);
   if (expires <= Date.now() || expires > Date.now() + 3600_000) return false;
@@ -55,7 +56,7 @@ export async function projectRequest(request: Request, deps: { connection: Datab
       return Response.json({ data: await dashboard(deps.connection, deps.identity.user.id, cursorKeys(deps.config.secret)), requestId }, { headers });
     }
     if (request.method === "GET" && projectId) {
-      const data = projectDTO(await readProject(deps.connection, deps.identity.user.id, projectId));
+      const data = await projectView(deps.connection.db, await readProject(deps.connection, deps.identity.user.id, projectId));
       const tag = `"project-${data.id}-${data.resourceVersion}"`; headers.set("ETag", tag); headers.set("Cache-Control", "private, no-cache");
       if (request.headers.get("if-none-match")?.split(",").map((t) => t.trim().replace(/^W\//, "")).some((t) => t === tag || t === "*")) return new Response(null, { status: 304, headers });
       return Response.json({ data, requestId }, { headers });

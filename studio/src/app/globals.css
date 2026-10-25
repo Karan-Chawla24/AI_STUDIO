@@ -225,3 +225,20 @@ nav { display: grid; gap: 6px; margin-top: 48px; }
 .plan-editor .auth-error .button { margin-top: 12px; }
 @media(max-width: 900px) { .plan-layout { grid-template-columns: 1fr; } }
 @media(max-width: 560px) { .plan-compare { grid-template-columns: 1fr; } .plan-actions .button { width: 100%; } .plan-save-bar { flex-wrap: wrap; } }
+
+/* F09: proposal review uses the same quiet Mineral Signal surfaces as the plan. */
+.plan-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: contents; }
+.idea-panel { margin-top: 3rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--border); border-radius: 1.25rem; background: var(--surface); }
+.idea-panel h2 { max-width: 28ch; margin-block: .6rem; }
+.idea-panel textarea { display: block; width: 100%; margin: .5rem 0 1rem; padding: .8rem; font: inherit; border: 1px solid var(--border); border-radius: .7rem; background: var(--canvas); color: inherit; }
+.idea-panel select { padding: .6rem; font: inherit; border-radius: .5rem; }
+.idea-panel .plan-actions { flex-wrap: wrap; align-items: center; }
+.idea-job { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; }
+.idea-proposal { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.idea-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,270px),1fr)); gap: 1rem; margin: 1rem 0; }
+.proposal-option { border: 1px solid var(--border); border-radius: 1rem; padding: 1.2rem; overflow-wrap: anywhere; }
+.proposal-option h3 { font-size: 1.2rem; }
+.proposal-option p { white-space: pre-wrap; }
+
+.proposal-option h3 { margin: .65rem 0; }
+.proposal-option .button { margin-top: 1rem; }

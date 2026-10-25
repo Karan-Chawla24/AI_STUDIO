@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProjectDTO } from "@/server/projects/model";
+import { IdeaPanel } from "./idea-panel";
 import { DeleteProject } from "./delete-project";
 type Fields = { title: string; refinedIdea: string; audience: string; niche: string };
 const names = ["title", "refinedIdea", "audience", "niche"] as const;
@@ -8,6 +9,7 @@ const labels = { title: "Project title", refinedIdea: "Your plan", audience: "Au
 function fields(project: ProjectDTO): Fields { return { title: project.title, refinedIdea: project.refinedIdea ?? project.originalIdea, audience: project.audience ?? "", niche: project.niche ?? "" }; }
 const same = (a: Fields, b: Fields) => names.every(k => a[k] === b[k]);
 export function PlanEditor({ project }: { project: ProjectDTO }) {
+  const [ideaBusy, setIdeaBusy] = useState(false);
   const [base, setBase] = useState(project), [draft, setDraft] = useState<Fields>(() => fields(project));
   const [status, setStatus] = useState<"idle" | "saving" | "checking" | "error" | "conflict">("idle");
   const [error, setError] = useState(""), [remote, setRemote] = useState<ProjectDTO | null>(null);
@@ -70,11 +72,12 @@ export function PlanEditor({ project }: { project: ProjectDTO }) {
     {error && <div className="auth-error" role="alert"><p>{error}</p>{status === "error" && <button type="button" className="button secondary" onClick={() => void checkSaved()}>Check saved version</button>}</div>}
     {remote && status === "conflict" && <section className="plan-conflict" aria-labelledby="conflict-heading"><h2 id="conflict-heading">Choose how to continue</h2><p>The saved version is revision {remote.revision}. Saving yours will replace its plan fields.</p><div className="plan-compare"><div><h3>Your local version</h3>{names.map(k => <div key={k}><strong>{labels[k]}</strong><p>{draft[k] || "Not specified"}</p></div>)}</div><div><h3>Latest saved version</h3>{names.map(k => <div key={k}><strong>{labels[k]}</strong><p>{fields(remote)[k] || "Not specified"}</p></div>)}</div></div><div className="plan-actions"><button type="button" className="button secondary" onClick={useSaved}>Use saved version</button><button type="button" className="button primary" onClick={() => { setBase(remote); setRemote(null); setError(""); setStatus("idle"); }}>Save my version</button></div></section>}
     <div className="plan-layout"><form className="project-form" onSubmit={event => { event.preventDefault(); if (status === "idle") void save(); }}>
-      <label htmlFor="plan-title">Project title<input id="plan-title" value={draft.title} onChange={event => change("title", event.target.value)} /></label>
+      <fieldset disabled={ideaBusy} className="plan-fieldset"><label htmlFor="plan-title">Project title<input id="plan-title" value={draft.title} onChange={event => change("title", event.target.value)} /></label>
       <label htmlFor="plan-idea">Your plan</label><textarea id="plan-idea" rows={9} value={draft.refinedIdea} onChange={event => change("refinedIdea", event.target.value)} aria-describedby="plan-count" /><p id="plan-count" className="field-hint">{[...draft.refinedIdea].length.toLocaleString()} / 5,000 characters. Explain what the viewer should understand.</p>
       <div className="project-form-pair"><label htmlFor="plan-audience">Audience <span>(optional)</span><input id="plan-audience" value={draft.audience} onChange={event => change("audience", event.target.value)} /></label><label htmlFor="plan-niche">Niche <span>(optional)</span><input id="plan-niche" value={draft.niche} onChange={event => change("niche", event.target.value)} /></label></div>
       <div className="project-form-footer"><p>Your changes save after a short pause.</p><button className="button primary" disabled={!dirty || status !== "idle"} type="submit">Save now</button></div>
-    </form><aside className="plan-reference"><p className="eyebrow">The starting point</p><h2>Your original idea</h2><p className="saved-idea">{project.originalIdea}</p><div><span className="status-label">{project.settings.targetDurationSeconds}s target</span><p className="field-hint">This original stays here as a reference while you shape your plan.</p></div></aside></div>
-    <div className="project-next"><p>Storyboard and AI suggestions are coming in later milestones.</p>{!dirty && status === "idle" && <DeleteProject key={base.revision} id={base.id} title={base.title} revision={base.revision} />}</div>
+    </fieldset></form><aside className="plan-reference"><p className="eyebrow">The starting point</p><h2>Your original idea</h2><p className="saved-idea">{project.originalIdea}</p><div><span className="status-label">{project.settings.targetDurationSeconds}s target</span><p className="field-hint">This original stays here as a reference while you shape your plan.</p></div></aside></div>
+    <IdeaPanel project={base} disabled={dirty || status !== "idle"} onBusy={setIdeaBusy} onProject={p => { if (!same(latest.current, fields(base))) return; accept(p, latest.current); }} />
+    <div className="project-next"><p>Next: turn your chosen plan into a storyboard.</p>{!dirty && !ideaBusy && status === "idle" && <DeleteProject key={base.revision} id={base.id} title={base.title} revision={base.revision} />}</div>
   </div>;
 }
