@@ -1,3 +1,4 @@
+import { storyboardShape } from "./storyboard-shapes";
 import "server-only";
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
@@ -17,7 +18,7 @@ const obj = (p: Document) => ({ bsonType: "object", required: Object.keys(p), ad
 const base = { _id: text(), schemaVersion: { enum: [1] }, ownerId: text(), projectId: text(), createdAt: date, updatedAt: date };
 const error = { oneOf: [nil, obj({ code: text(), message: text(500) })] };
 const input = obj({ title: text(120), idea: text(5000), audience: ntext(), niche: ntext(), duration: { ...int(60), maximum: 90 }, count: { ...int(), maximum: 10 }, guidance: { bsonType: "string", maxLength: 1000 }, model: text() });
-const schemas: Record<string, Document> = {
+export const schemas: Record<string, Document> = {
  generationJobs: { $jsonSchema: obj({ ...base, resourceVersion: int(), kind: { enum: ["IDEA_BRAINSTORM", "IDEA_REFINE"] }, state: { enum: ["QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "CANCELLED", "SUPERSEDED", "REQUIRES_ATTENTION"] }, active: bool, stage: { enum: ["QUEUED", "PLANNING", "FINISHED"] }, baseRevision: int(), input: { oneOf: [nil,input] }, inputHash: text(64), proposalIds: { bsonType: "array", maxItems: 1, items: text() }, cancelRequested: bool, lease: obj({ holder: ntext(), epoch: int(0), expiresAt: nd }), startedAt: nd, finishedAt: nd, error, unsafeToRetry: bool }) },
  proposals: { $jsonSchema: obj({ ...base, version: int(), kind: { enum: ["IDEAS"] }, baseRevision: int(), targetSceneId: nil, state: { enum: ["PENDING", "APPLIED", "DISMISSED", "CONFLICTED"] }, payload: obj({ ideas: { bsonType: "array", minItems: 1, maxItems: 10, items: obj({ id: text(), title: text(120), refinedIdea: text(5000), rationale: text(500) }) } }), payloadHash: text(64), sourceJobId: text(), appliedStoryboardId: nil, appliedAt: nd }) },
  providerCalls: { $jsonSchema: obj({ ...base, jobId: text(), state: { enum: ["SENT", "SUCCEEDED", "FAILED", "OUTCOME_UNKNOWN"] }, requestHash: text(64), modelVersion: text(), sentAt: date, finishedAt: nd }) },
@@ -27,12 +28,12 @@ const indexes: Record<string, { name: string; key: Record<string, 1|-1>; unique?
  proposals: [{ name: "idea_source", key: { sourceJobId: 1 }, unique: true }, { name: "idea_proposal_history", key: { ownerId: 1, projectId: 1, createdAt: -1, _id: -1 } }],
  providerCalls: [{ name: "idea_provider_once", key: { jobId: 1 }, unique: true }],
 };
-const extensions = Object.fromEntries(["projects", "idempotencyRecords"].map(n => [n, ideasShape(n, planShape(n, deletionShape(n,projectSchemas[n])))]));
+export const extensions = Object.fromEntries(["projects", "idempotencyRecords"].map(n => [n, ideasShape(n, planShape(n, deletionShape(n,projectSchemas[n])))]));
 const id = "F09_0001_idea_proposals", checksum = createHash("sha256").update(JSON.stringify({schemas,indexes,extensions})).digest("hex");
 async function shape(db: Db) {
  for (const [name, validator] of Object.entries({...schemas,...extensions})) {
   const info = await db.listCollections({name}, {nameOnly:false}).next();
-  if (!isDeepStrictEqual(info?.options?.validator,validator) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("IDEAS_SCHEMA_DRIFT", "Run ideas:migrate and verify the idea schema.");
+  if ((!isDeepStrictEqual(info?.options?.validator,validator) && !isDeepStrictEqual(info?.options?.validator,storyboardShape(name,validator))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("IDEAS_SCHEMA_DRIFT", "Run ideas:migrate and verify the idea schema.");
   if (!indexes[name]) continue;
   const actual = await db.collection(name).listIndexes().toArray();
   for (const expected of indexes[name]) { const found = actual.find(i => i.name === expected.name); if (!found || !isDeepStrictEqual(found.key,expected.key) || !!found.unique !== !!expected.unique || !isDeepStrictEqual(found.partialFilterExpression,expected.partialFilterExpression) || found.sparse || found.hidden) throw new DatabaseError("IDEAS_INDEX_DRIFT", "Idea indexes require repair."); }

@@ -242,3 +242,23 @@ nav { display: grid; gap: 6px; margin-top: 48px; }
 
 .proposal-option h3 { margin: .65rem 0; }
 .proposal-option .button { margin-top: 1rem; }
+/* F10 scene review: editorial content, with no simulated video preview. */
+.storyboard-panel { margin-top: 3rem; padding: clamp(1rem,3vw,2rem); background: var(--surface); border: 1px solid var(--border); border-radius: 1.25rem; scroll-margin-top: 2rem; }
+.storyboard-panel h2 { margin: .6rem 0; max-width: 26ch; }
+.storyboard-panel>label { display: block; margin-top: 1.5rem; }
+.storyboard-panel textarea { display: block; width: 100%; margin: .5rem 0 1rem; border: 1px solid var(--control-border); border-radius: .7rem; padding: .8rem; background: var(--canvas); color: inherit; font: inherit; }
+.storyboard-panel summary { cursor: pointer; font-weight: 700; padding: 1rem 0; overflow-wrap: anywhere; }
+.storyboard-proposal,.storyboard-accepted,.storyboard-history { margin-top: 1.5rem; border-top: 1px solid var(--border); }
+.storyboard-accepted>summary { color: var(--primary); }
+.storyboard-content h3 { font-size: 1.6rem; margin: .5rem 0; }
+.storyboard-hook { max-width: 70ch; color: var(--muted); }
+.storyboard-scenes { display: grid; gap: 1rem; list-style: none; padding: 0; margin: 1.5rem 0; }
+.storyboard-scene { padding: 1.25rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--canvas); overflow-wrap: anywhere; }
+.storyboard-scene>header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+.storyboard-scene-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+.storyboard-scene h4 { font: 700 .85rem var(--font-body); margin: .8rem 0 .5rem; color: var(--muted); }
+.storyboard-scene p { white-space: pre-wrap; }
+.storyboard-job { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; padding-top: 1rem; }
+.storyboard-empty { margin-top: 1.5rem; padding: 1.5rem; border: 1px dashed var(--control-border); border-radius: 1rem; }
+.storyboard-panel .plan-actions { flex-wrap: wrap; gap: .75rem; }
+@media(max-width:650px) { .storyboard-scene-grid { grid-template-columns: 1fr; gap: .5rem; } .storyboard-scene { padding: 1rem; } }

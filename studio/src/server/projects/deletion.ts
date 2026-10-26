@@ -47,9 +47,9 @@ export async function deleteProject(connection: DatabaseConnection, ownerId: str
       if (!project) throw missingProject();
       if (project.revision !== input.expectedRevision) throw new ProjectError("REVISION_CONFLICT", "This project changed. Refresh it before deleting.", 409);
       // Fail closed when future features introduce resources this draft-only worker cannot clean.
-      if (project.activeStoryboardId || project.latestRenderId || project.currentRenderId || project.publishFence.activeIntentId) throw new ProjectError("DELETION_UNAVAILABLE", "This project needs additional cleanup support before deletion.", 409);
+      if (project.latestRenderId || project.currentRenderId || project.publishFence.activeIntentId) throw new ProjectError("DELETION_UNAVAILABLE", "This project needs additional cleanup support before deletion.", 409);
       if (project.activeJobId) {
-        const planning = await db.collection("generationJobs").findOne({ _id: project.activeJobId as never, ownerId, projectId, kind: { $in: ["IDEA_BRAINSTORM", "IDEA_REFINE"] } }, { session });
+        const planning = await db.collection("generationJobs").findOne({ _id: project.activeJobId as never, ownerId, projectId, kind: { $in: ["IDEA_BRAINSTORM", "IDEA_REFINE", "STORYBOARD_GENERATE"] } }, { session });
         if (!planning) throw new ProjectError("DELETION_UNAVAILABLE", "Unknown active work requires cleanup support.", 409);
         await db.collection("generationJobs").updateMany({ ownerId, projectId, active: true }, { $set: { active: false, state: "CANCELLED", stage: "FINISHED", cancelRequested: true, finishedAt: now, updatedAt: now, "lease.expiresAt": null }, $inc: { resourceVersion: 1 } }, { session });
         await db.collection("providerCalls").updateMany({ ownerId, projectId, state: "SENT" }, { $set: { state: "OUTCOME_UNKNOWN", updatedAt: now } }, { session });
@@ -80,10 +80,11 @@ export async function cleanDeletion(connection: DatabaseConnection, id: string) 
     const job = await jobs.findOne({ _id: id, state: "ACCEPTED" }, { session });
     if (!job) return;
     const project = await connection.db.collection<Project>("projects").findOne({ _id: job.targetId, ownerId: job.ownerId }, { session });
-    if (project && (project.lifecycle !== "DELETING" || project.deletionId !== id || project.activeJobId || project.activeStoryboardId || project.latestRenderId || project.currentRenderId || project.publishFence.activeIntentId)) {
+    if (project && (project.lifecycle !== "DELETING" || project.deletionId !== id || project.activeJobId || project.latestRenderId || project.currentRenderId || project.publishFence.activeIntentId)) {
       await jobs.updateOne({ _id: id, state: "ACCEPTED" }, { $set: { state: "REQUIRES_ATTENTION", updatedAt: new Date(), error: "UNSUPPORTED_DEPENDENCIES" }, $inc: { resourceVersion: 1 } }, { session }); return;
     }
-    if (project) await connection.db.collection<Project>("projects").updateOne({ _id: job.targetId, ownerId: job.ownerId, lifecycle: "DELETING", deletionId: id }, { $set: { lifecycle: "DELETED", title: "Deleted project", titleSort: "deleted project", originalIdea: "Deleted", refinedIdea: null, audience: null, niche: null, "settings.voiceKey": null, "settings.targetDurationSeconds": 75, updatedAt: new Date() }, $inc: { resourceVersion: 1 } }, { session });
+    if (project) await connection.db.collection<Project>("projects").updateOne({ _id: job.targetId, ownerId: job.ownerId, lifecycle: "DELETING", deletionId: id }, { $set: { lifecycle: "DELETED", activeStoryboardId: null, warnings: [], title: "Deleted project", titleSort: "deleted project", originalIdea: "Deleted", refinedIdea: null, audience: null, niche: null, "settings.voiceKey": null, "settings.targetDurationSeconds": 75, updatedAt: new Date() }, $inc: { resourceVersion: 1 } }, { session });
+    await connection.db.collection("storyboards").deleteMany({ ownerId: job.ownerId, projectId: job.targetId }, { session });
     // Purge immutable planning content too; in-flight completions are fenced by job state.
     await connection.db.collection("proposals").deleteMany({ ownerId: job.ownerId, projectId: job.targetId }, { session });
     await connection.db.collection("generationJobs").updateMany({ ownerId: job.ownerId, projectId: job.targetId }, { $set: { input: null, proposalIds: [] } }, { session });

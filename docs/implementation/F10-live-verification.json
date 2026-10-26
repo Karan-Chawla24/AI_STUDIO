@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-26",
+  "model": "gemini-3.8-flash",
+  "state": "SUCCEEDED",
+  "proposalState": "PENDING",
+  "scenes": 8,
+  "errorCode": null,
+  "database": "isolated temporary replica set; no owner drafts changed",
+  "provider": "live Gemini; one storyboard request"
+}

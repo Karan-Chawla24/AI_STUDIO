@@ -6,7 +6,7 @@ This is the source of truth for implementation progress. The PRD defines product
 
 ## Current milestone
 
-**F09 — AI idea suggestions and refinement are implemented.** Atlas migration/verification passed. The application now supports background idea requests and explicit proposal review. Live Gemini verification passed using the owner-authorized POC settings. The idea worker and local preview have been started. Finish F09 owner testing before F10.
+**F10 — Storyboard generation and explicit review are ready for owner testing.** All 83 regression tests, desktop/mobile browser checks, a real Gemini eight-scene generation, typecheck/lint, production build and Atlas migration/verification passed. The preview and workers are running. Finish F10 owner testing before F11.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -24,8 +24,8 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Complete; owner authorized progression |
 | F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Complete; owner authorized progression |
 | F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Complete; owner authorized progression |
-| F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Implemented and live Gemini verified; owner testing pending |
-| F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Planned |
+| F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Complete; owner approved and authorized progression |
+| F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Complete and activated; awaiting owner testing |
 | F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Planned |
 | F12 | Compilation and storyboard approval | Approval waits for saves/compilation; relevant edits invalidate approval | Planned |
 | F13 | Voice, captions and music settings | Two validated voices, required captions and optional licensed music | Planned |
@@ -42,6 +42,14 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-26 — F10 storyboard generation and immutable version review
+
+- Owner approved F09 and requested F10. Added storyboard generation from the saved plan, optional direction, 6–12 scene review, explicit apply/dismiss, replacement confirmation, accepted version history and advisory timing. Scene editing/compilation/approval/rendering remain their planned milestones.
+- Reused the durable planning queue with verified-email, owner/lifecycle, CSRF, idempotency, quota, cancellation and uncertain-outcome guards. Server validation assigns scene IDs/order, rejects unsupported types/excess fields/highlights outside narration, and bounds all content. Generation never automatically installs a storyboard.
+- Added F10_0001_storyboards with strict schemas and unique project/version/source-proposal indexes, preserving previous checksums. Acceptance and redacted audit are atomic; stale/conflicting proposals cannot overwrite current work. Plan changes preserve accepted scenes with PLAN_CHANGED; deletion purges storyboard history and fences delayed completions.
+- All 83 regression tests passed. Chrome desktop/390px/320px checks passed verification gating, queued reload, review/acceptance persistence, plan-change warning, replacement and historical review with zero page errors. Live Gemini 3.8 Flash generated eight valid scenes successfully in an isolated test database. Owner drafts were untouched. Evidence and scope: docs/implementation/F10_Storyboard_Generation.md.
+- npm run check and npm run build passed. Atlas storyboard migration and verification passed. Restarted the production preview on http://localhost:3001, the shared planning worker and deletion worker; both workers reported ready, sign-in returned 200 and anonymous project API reads returned 401. No additional secrets or dependencies. Stop for owner testing before F11.
 
 ### 2026-10-26 — F09 live Gemini activation
 

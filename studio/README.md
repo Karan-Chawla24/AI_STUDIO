@@ -61,3 +61,5 @@ F07: run `npm run deletion:migrate` and `npm run deletion:verify` before deletin
 F08 adds the plan editor and autosave at saved draft URLs and `/projects/:id/plan`. Run `npm run plan:migrate`, `npm run plan:verify` and `npm run test:plan`. Atlas activation and migration verification passed on 2026-10-24; see [editor setup and test checklist](../docs/implementation/F08_Plan_Editor.md).
 
 F09 adds idea brainstorming/refinement and explicit proposal review. Set `GEMINI_API_KEY` / `GEMINI_MODEL`, run `npm run ideas:migrate` and `npm run ideas:verify`, then run `npm run ideas:worker` alongside the web app. Verified email is required. Run `npm run test:ideas` for isolated tests. See [F09 setup, limits and owner checklist](../docs/implementation/F09_Idea_Suggestions.md).
+
+F10 adds reviewed storyboard generation and immutable accepted versions. Run `npm run storyboard:migrate`, `npm run storyboard:verify`, and replace the idea worker with `npm run planning:worker` (handles both ideas and storyboards). `npm run test:storyboard` runs isolated tests. See [F10 setup and owner checklist](../docs/implementation/F10_Storyboard_Generation.md).

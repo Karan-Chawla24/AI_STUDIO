@@ -40,7 +40,11 @@
     "test:ideas": "node --conditions=react-server --import tsx --test --test-concurrency=1 tests/ideas.test.ts",
     "ideas:migrate": "node --conditions=react-server --import tsx scripts/ideas-db.ts migrate",
     "ideas:verify": "node --conditions=react-server --import tsx scripts/ideas-db.ts verify",
-    "ideas:worker": "node --conditions=react-server --import tsx scripts/ideas-db.ts worker"
+    "ideas:worker": "node --conditions=react-server --import tsx scripts/ideas-db.ts worker",
+    "test:storyboard": "node --conditions=react-server --import tsx --test --test-concurrency=1 tests/storyboard.test.ts",
+    "storyboard:migrate": "node --conditions=react-server --import tsx scripts/storyboard-db.ts migrate",
+    "storyboard:verify": "node --conditions=react-server --import tsx scripts/storyboard-db.ts verify",
+    "planning:worker": "node --conditions=react-server --import tsx scripts/storyboard-db.ts worker"
   },
   "dependencies": {
     "@better-auth/mongo-adapter": "1.7.12",

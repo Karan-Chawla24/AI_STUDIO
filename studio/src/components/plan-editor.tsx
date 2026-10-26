@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProjectDTO } from "@/server/projects/model";
+import { StoryboardPanel } from "./storyboard-panel";
 import { IdeaPanel } from "./idea-panel";
 import { DeleteProject } from "./delete-project";
 type Fields = { title: string; refinedIdea: string; audience: string; niche: string };
@@ -77,7 +78,8 @@ export function PlanEditor({ project }: { project: ProjectDTO }) {
       <div className="project-form-pair"><label htmlFor="plan-audience">Audience <span>(optional)</span><input id="plan-audience" value={draft.audience} onChange={event => change("audience", event.target.value)} /></label><label htmlFor="plan-niche">Niche <span>(optional)</span><input id="plan-niche" value={draft.niche} onChange={event => change("niche", event.target.value)} /></label></div>
       <div className="project-form-footer"><p>Your changes save after a short pause.</p><button className="button primary" disabled={!dirty || status !== "idle"} type="submit">Save now</button></div>
     </fieldset></form><aside className="plan-reference"><p className="eyebrow">The starting point</p><h2>Your original idea</h2><p className="saved-idea">{project.originalIdea}</p><div><span className="status-label">{project.settings.targetDurationSeconds}s target</span><p className="field-hint">This original stays here as a reference while you shape your plan.</p></div></aside></div>
-    <IdeaPanel project={base} disabled={dirty || status !== "idle"} onBusy={setIdeaBusy} onProject={p => { if (!same(latest.current, fields(base))) return; accept(p, latest.current); }} />
-    <div className="project-next"><p>Next: turn your chosen plan into a storyboard.</p>{!dirty && !ideaBusy && status === "idle" && <DeleteProject key={base.revision} id={base.id} title={base.title} revision={base.revision} />}</div>
+    <IdeaPanel project={base} disabled={dirty || ideaBusy || status !== "idle"} onBusy={setIdeaBusy} onProject={p => { if (!same(latest.current, fields(base))) return; accept(p, latest.current); }} />
+    <StoryboardPanel project={base} disabled={dirty || ideaBusy || status !== "idle"} onBusy={setIdeaBusy} onProject={p => { if (!same(latest.current, fields(base))) return; accept(p, latest.current); }} />
+    <div className="project-next"><p>Your plan and accepted storyboards stay saved in this project.</p>{!dirty && !ideaBusy && status === "idle" && <DeleteProject key={base.revision} id={base.id} title={base.title} revision={base.revision} />}</div>
   </div>;
 }

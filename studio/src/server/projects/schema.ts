@@ -1,3 +1,4 @@
+import { storyboardShape } from "./storyboard-shapes";
 import { ideasShape } from "./ideas-shapes";
 import "server-only";
 import { createHash } from "node:crypto";
@@ -45,7 +46,7 @@ const checksum = createHash("sha256").update(JSON.stringify({ projectSchemas, pr
 async function verifyShape(db: Db) {
   for (const [name, validator] of Object.entries(projectSchemas)) {
     const info = await db.listCollections({ name }, { nameOnly: false }).next();
-    if ((!isDeepStrictEqual(info?.options?.validator, validator) && !isDeepStrictEqual(info?.options?.validator, deletionShape(name, validator)) && !isDeepStrictEqual(info?.options?.validator, planShape(name, deletionShape(name, validator))) && !isDeepStrictEqual(info?.options?.validator, ideasShape(name, planShape(name, deletionShape(name, validator))))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("PROJECT_SCHEMA_DRIFT", "Project collection validation differs from the required schema.");
+    if ((!isDeepStrictEqual(info?.options?.validator, validator) && !isDeepStrictEqual(info?.options?.validator, deletionShape(name, validator)) && !isDeepStrictEqual(info?.options?.validator, planShape(name, deletionShape(name, validator))) && !isDeepStrictEqual(info?.options?.validator, ideasShape(name, planShape(name, deletionShape(name, validator)))) && !isDeepStrictEqual(info?.options?.validator, storyboardShape(name, ideasShape(name, planShape(name, deletionShape(name, validator)))))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("PROJECT_SCHEMA_DRIFT", "Project collection validation differs from the required schema.");
     const actual = await db.collection(name).listIndexes().toArray();
     for (const index of projectIndexes[name]) {
       const found = actual.find((i) => i.name === index.name);
