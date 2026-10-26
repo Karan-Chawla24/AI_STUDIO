@@ -1,12 +1,12 @@
 # Project status — Educational Video Studio
 
-Last updated: 2026-10-25
+Last updated: 2026-10-26
 
 This is the source of truth for implementation progress. The PRD defines product scope; the API, database and system-design documents define the implementation contracts. Stitch boards are visual references, not proof that features work.
 
 ## Current milestone
 
-**F09 — AI idea suggestions and refinement are implemented.** Atlas migration/verification passed. The application now supports background idea requests and explicit proposal review. Live Gemini testing is pending configuration: `studio/.env.local` has empty `GEMINI_API_KEY` / `GEMINI_MODEL` entries; permission to reuse POC settings was requested. Finish F09 owner testing before F10.
+**F09 — AI idea suggestions and refinement are implemented.** Atlas migration/verification passed. The application now supports background idea requests and explicit proposal review. Live Gemini verification passed using the owner-authorized POC settings. The idea worker and local preview have been started. Finish F09 owner testing before F10.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -24,7 +24,7 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F06 | Project library and dashboard | Search, cursor pagination, filters, empty/loading/error states use persisted data | Complete; owner authorized progression |
 | F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Complete; owner authorized progression |
 | F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Complete; owner authorized progression |
-| F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Implemented; live Gemini configuration and owner testing pending |
+| F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Implemented and live Gemini verified; owner testing pending |
 | F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Planned |
 | F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Planned |
 | F12 | Compilation and storyboard approval | Approval waits for saves/compilation; relevant edits invalidate approval | Planned |
@@ -42,6 +42,13 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-26 — F09 live Gemini activation
+
+- Owner authorized reuse of the POC Gemini settings. Copied only GEMINI_API_KEY and GEMINI_MODEL into ignored studio/.env.local; no credentials were printed or committed. The selected model is gemini-3.8-flash, with no fallback.
+- One live refinement request passed the real admission/worker/provider/output-validation pipeline against an isolated temporary replica set. Job SUCCEEDED, one PENDING proposal with one idea, no error. Owner drafts were untouched. Evidence: docs/implementation/F09-live-verification.json.
+- Started the production preview at http://localhost:3001 plus idea and deletion workers. Both workers reported ready; sign-in returned 200 and anonymous project API access returned 401. No application code changed, so the previous build/regression evidence still applies.
+- Ready for owner testing: verify email, open a saved project, select Explore ideas or Refine this plan, then review and explicitly accept/dismiss. Stop before F10.
 
 ### 2026-10-25 — F09 idea proposals and refinement
 

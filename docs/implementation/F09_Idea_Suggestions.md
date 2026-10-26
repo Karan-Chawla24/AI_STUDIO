@@ -29,7 +29,7 @@ F09 uses the durable `generationJobs` collection directly as its polling queue a
 
 The implemented collection validators deliberately cover only F09 fields/states, as earlier feature migrations do. Future job/schema additions require new forward migrations. Historical jobs and proposals have no automatic expiry while the project exists. Account deletion and full retention policy remain F21/F24. General API read/mutation throttles remain operational hardening; the paid planning admission limit is enforced now.
 
-No live Gemini call has been made for this feature: credentials/model are still blank in the application environment, and permission to reuse the POC settings is pending. Automated browser checks use an injected provider only in an isolated test runner, never a production mock.
+Live activation passed on 2026-10-26 after the owner authorized reuse of the POC Gemini settings. One real gemini-3.8-flash refinement request produced a SUCCEEDED job and one valid PENDING proposal in an isolated temporary replica set. No owner drafts changed. See F09-live-verification.json. The local preview and idea worker have been started. Earlier automated browser checks used an injected provider only in an isolated test runner, never a production mock.
 
 ## Verification
 
