@@ -38,6 +38,12 @@ F09's documented limits still apply: polling MongoDB queue, no generic outbox/in
 
 ## Evidence
 
+### Stale refresh regression — 2026-10-27
+
+Plan-editor snapshot acceptance now checks resourceVersion against a synchronous latest-accepted reference, independent of whether React has committed the next render. Older snapshots cannot replace autosaved text. Background callbacks leave dirty edits and in-flight saving/reconciliation alone. Both planning panels discard superseded refresh successes and errors, invalidate outstanding refreshes on commands/version changes/unmount, and reload panel data after project version changes.
+
+The committed `studio/tests/plan-refresh.browser.ts` reproduces a delayed storyboard read during successful autosave and verifies the new text, revision and saved indicator remain correct. It also injects an older snapshot and a superseded error. All scenarios passed with no browser errors or provider calls; see [browser evidence](F10-refresh-browser-verification.json). Run `npm run test:plan-refresh-browser` from studio using Node 24 with PLAYWRIGHT_MODULE pointing to an installed Playwright module and CHROME_PATH to Chrome if it is outside the default Windows location. The test starts an isolated MongoDB replica set and Next dev on port 3109; stop the local preview before running because Next shares build output. TypeScript, lint and production build passed after the browser test.
+
 ### Owner review and cancellation follow-up — 2026-10-27
 
 Owner passed generation, reload recovery, explicit acceptance, plan-change warning, replacement, saved history and mobile review. Provider/network failures, quotas, access controls, stale proposals, dismissal and pagination remain untested by the owner.

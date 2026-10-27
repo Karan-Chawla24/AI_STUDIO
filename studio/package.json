@@ -45,7 +45,8 @@
     "storyboard:migrate": "node --conditions=react-server --import tsx scripts/storyboard-db.ts migrate",
     "storyboard:verify": "node --conditions=react-server --import tsx scripts/storyboard-db.ts verify",
     "planning:worker": "node --conditions=react-server --import tsx scripts/storyboard-db.ts worker",
-    "test:planning-request": "node --import tsx --test tests/planning-request.test.ts"
+    "test:planning-request": "node --import tsx --test tests/planning-request.test.ts",
+    "test:plan-refresh-browser": "node --conditions=react-server --import tsx tests/plan-refresh.browser.ts"
   },
   "dependencies": {
     "@better-auth/mongo-adapter": "1.7.12",

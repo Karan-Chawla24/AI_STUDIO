@@ -6,6 +6,8 @@ import type { jobDTO, proposalDTO, Idea } from "@/server/projects/ideas-model";
 type Job=ReturnType<typeof jobDTO>;type Proposal=ReturnType<typeof proposalDTO> & {payload:{ideas:Idea[]}};
 export function IdeaPanel({project,disabled,onProject,onBusy}:{project:ProjectDTO;disabled:boolean;onProject:(p:ProjectDTO)=>void;onBusy:(busy:boolean)=>void}) {
  const [recovering,setRecovering]=useState(false);
+ const refreshSequence=useRef(0);
+ const invalidateRefresh=useCallback(()=>{refreshSequence.current++;},[]);
  const [hasPending,setHasPending]=useState(false);
  const [guidance,setGuidance]=useState(""),[count,setCount]=useState(3),[proposals,setProposals]=useState<Proposal[]>([]),[job,setJob]=useState<Job|null>(null),[error,setError]=useState(""),[loading,setLoading]=useState(true),[working,setWorking]=useState(false),[cursor,setCursor]=useState<string|null>(null);
  const projectCallback=useRef(onProject);
@@ -13,11 +15,11 @@ export function IdeaPanel({project,disabled,onProject,onBusy}:{project:ProjectDT
  const mounted=useRef(true),pending=useRef<{path:string;body:object;key:string}|null>(null),gate=useRef(false);
  const root=`/api/v1/projects/${project.id}`;
  const read=useCallback(async(path:string)=>{const r=await fetch(path,{cache:"no-store",signal:AbortSignal.timeout(15000)});const b=await r.json();if(!r.ok)throw new Error(b.error?.message??"Couldn’t load suggestions.");return b.data;},[]);
- const refresh=useCallback(async()=>{try{const [p,j,saved]=await Promise.all([read(`${root}/proposals?kind=IDEAS`),read(`${root}/jobs?limit=1`),read(root)]);if(mounted.current){projectCallback.current(saved);setProposals(p.items);setCursor(p.page.nextCursor);setJob(j.items[0]?.kind==="STORYBOARD_GENERATE"?null:j.items[0]??null);setLoading(false);}}catch(e){if(mounted.current){setError(planningErrorMessage(e));setLoading(false);setJob(j=>j?{...j}:j);}}},[read,root]);
- useEffect(()=>{mounted.current=true;const timer=setTimeout(()=>void refresh(),0);return()=>{mounted.current=false;clearTimeout(timer);};},[refresh]);
+ const refresh=useCallback(async()=>{const sequence=++refreshSequence.current;try{const [p,j,saved]=await Promise.all([read(`${root}/proposals?kind=IDEAS`),read(`${root}/jobs?limit=1`),read(root)]);if(mounted.current&&sequence===refreshSequence.current){projectCallback.current(saved);setProposals(p.items);setCursor(p.page.nextCursor);setJob(j.items[0]?.kind==="STORYBOARD_GENERATE"?null:j.items[0]??null);setLoading(false);}}catch(e){if(mounted.current&&sequence===refreshSequence.current){setError(planningErrorMessage(e));setLoading(false);setJob(j=>j?{...j}:j);}}},[read,root]);
+ useEffect(()=>{mounted.current=true;const timer=setTimeout(()=>void refresh(),0);return()=>{mounted.current=false;invalidateRefresh();clearTimeout(timer);};},[refresh,project.resourceVersion,invalidateRefresh]);
  useEffect(()=>{if(!job||!["QUEUED","RUNNING","CANCEL_REQUESTED"].includes(job.state))return;const timer=setTimeout(()=>void refresh(),document.hidden?15000:3000);return()=>clearTimeout(timer);},[job,refresh]);
  async function command(path:string,body:object,retry=false){
-  if(gate.current)return;gate.current=true;setWorking(true);onBusy(true);setError("");setRecovering(false);
+  if(gate.current)return;gate.current=true;refreshSequence.current++;setWorking(true);onBusy(true);setError("");setRecovering(false);
   const operation=retry&&pending.current?pending.current:{path,body,key:crypto.randomUUID()};pending.current=operation;setHasPending(true);
   try{
    const csrf=await read("/api/v1/csrf");const {response:r,body:b}=await (operation.path.endsWith("/cancel")?sendPlanningCancellation(operation,csrf.token,()=>setRecovering(true),replacement=>{pending.current=replacement;}):sendPlanningCommand(operation,csrf.token,()=>setRecovering(true)));

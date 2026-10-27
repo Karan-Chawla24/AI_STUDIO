@@ -43,6 +43,12 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Change log
 
+### 2026-10-27 — F10 stale refresh review fix
+
+- Fixed a plan-editor regression where a delayed storyboard refresh could overwrite newly autosaved text while showing All changes saved. The editor now keeps the latest accepted project in a synchronous reference and rejects snapshots with an older resourceVersion or different project ID. Background refreshes also cannot replace dirty fields or an in-flight save/reconciliation. Explicit conflict resolution keeps that reference in sync.
+- Idea and storyboard panels now sequence refresh requests and invalidate earlier responses when a newer refresh, command, project resource version or unmount supersedes them. Both outdated success payloads and outdated errors are discarded. A project-version change schedules a fresh panel read.
+- Added a committed browser regression and npm run test:plan-refresh-browser. It holds a storyboard refresh open during successful autosave, verifies revision 2 and the new text remain displayed, injects an older snapshot into a subsequent refresh, and checks a superseded error does not replace a newer successful load. All three scenarios passed with zero page errors using an isolated temporary database and no provider calls. Evidence: docs/implementation/F10-refresh-browser-verification.json. TypeScript, lint and production build passed; local preview restarted with the fix. F11 remains gated on owner review.
+
 ### 2026-10-27 — F10 owner review and cancellation race recovery
 
 - Owner passed generation, reload recovery, explicit acceptance, plan-change warning, replacement, saved version history and mobile review. Owner has not tested provider/network failures, quotas, access controls, stale proposals, dismissal or pagination; automated coverage is not recorded as owner acceptance.

@@ -12,20 +12,22 @@ function Scenes({storyboard}:{storyboard:StoryboardDTO}) {
 }
 export function StoryboardPanel({project,disabled,onProject,onBusy}:{project:ProjectDTO;disabled:boolean;onProject:(p:ProjectDTO)=>void;onBusy:(busy:boolean)=>void}) {
  const [recovering,setRecovering]=useState(false);
+ const refreshSequence=useRef(0);
+ const invalidateRefresh=useCallback(()=>{refreshSequence.current++;},[]);
  const [guidance,setGuidance]=useState(""),[working,setWorking]=useState(false),[hasPending,setHasPending]=useState(false),[error,setError]=useState(""),[loading,setLoading]=useState(true);
  const [proposals,setProposals]=useState<Proposal[]>([]),[job,setJob]=useState<ReturnType<typeof jobDTO>|null>(null),[active,setActive]=useState<StoryboardDTO|null>(null),[history,setHistory]=useState<Summary[]>([]),[viewed,setViewed]=useState<StoryboardDTO|null>(null),[cursor,setCursor]=useState<string|null>(null),[historyCursor,setHistoryCursor]=useState<string|null>(null);
  const root=`/api/v1/projects/${project.id}`,mounted=useRef(true),gate=useRef(false),callback=useRef(onProject),pending=useRef<{path:string;body:object;key:string}|null>(null);
  useEffect(()=>{callback.current=onProject;},[onProject]);
  const read=useCallback(async(path:string)=>{const r=await fetch(path,{cache:"no-store",signal:AbortSignal.timeout(15000)});const b=await r.json();if(!r.ok)throw new Error(b.error?.message??"Could not load the storyboard.");return b.data;},[]);
- const refresh=useCallback(async()=>{try{
+ const refresh=useCallback(async()=>{const sequence=++refreshSequence.current;try{
   const [saved,p,j,h]=await Promise.all([read(root),read(`${root}/proposals?kind=STORYBOARD`),read(`${root}/jobs?kind=STORYBOARD_GENERATE&limit=1`),read(`${root}/storyboards`)]);
   const current=saved.activeStoryboardId?await read(`${root}/storyboards/${saved.activeStoryboardId}`):null;
-  if(mounted.current){callback.current(saved);setProposals(p.items);setCursor(p.page.nextCursor);setJob(j.items[0]??null);setActive(current);setHistory(h.items);setHistoryCursor(h.page.nextCursor);setLoading(false);}
- }catch(e){if(mounted.current){setError(planningErrorMessage(e));setLoading(false);setJob(j=>j?{...j}:j);}}},[read,root]);
- useEffect(()=>{mounted.current=true;const timer=setTimeout(()=>void refresh(),0);return()=>{mounted.current=false;clearTimeout(timer);};},[refresh]);
+  if(mounted.current&&sequence===refreshSequence.current){callback.current(saved);setProposals(p.items);setCursor(p.page.nextCursor);setJob(j.items[0]??null);setActive(current);setHistory(h.items);setHistoryCursor(h.page.nextCursor);setLoading(false);}
+ }catch(e){if(mounted.current&&sequence===refreshSequence.current){setError(planningErrorMessage(e));setLoading(false);setJob(j=>j?{...j}:j);}}},[read,root]);
+ useEffect(()=>{mounted.current=true;const timer=setTimeout(()=>void refresh(),0);return()=>{mounted.current=false;invalidateRefresh();clearTimeout(timer);};},[refresh,project.resourceVersion,invalidateRefresh]);
  useEffect(()=>{if(!job||!["QUEUED","RUNNING","CANCEL_REQUESTED"].includes(job.state))return;const timer=setTimeout(()=>void refresh(),document.hidden?15000:3000);return()=>clearTimeout(timer);},[job,refresh]);
  async function command(path:string,body:object,retry=false){
-  if(gate.current)return;gate.current=true;setWorking(true);onBusy(true);setError("");setRecovering(false);
+  if(gate.current)return;gate.current=true;refreshSequence.current++;setWorking(true);onBusy(true);setError("");setRecovering(false);
   const op=retry&&pending.current?pending.current:{path,body,key:crypto.randomUUID()};pending.current=op;setHasPending(true);
   try{const csrf=await read("/api/v1/csrf");const {response:r,body:b}=await (op.path.endsWith("/cancel")?sendPlanningCancellation(op,csrf.token,()=>setRecovering(true),replacement=>{pending.current=replacement;}):sendPlanningCommand(op,csrf.token,()=>setRecovering(true)));
    if(!r.ok){if(r.status<500){pending.current=null;setHasPending(false);}throw new Error(b.error?.message??"Could not complete this request.");}

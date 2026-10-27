@@ -1,0 +1,8 @@
+{
+  "delayedRefreshDuringAutosave": "passed",
+  "olderResourceVersion": "rejected",
+  "supersededRefreshError": "discarded",
+  "pageErrors": [],
+  "database": "isolated temporary replica set",
+  "providerCalls": 0
+}

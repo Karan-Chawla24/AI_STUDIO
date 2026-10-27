@@ -14,7 +14,7 @@ export function PlanEditor({ project }: { project: ProjectDTO }) {
   const [base, setBase] = useState(project), [draft, setDraft] = useState<Fields>(() => fields(project));
   const [status, setStatus] = useState<"idle" | "saving" | "checking" | "error" | "conflict">("idle");
   const [error, setError] = useState(""), [remote, setRemote] = useState<ProjectDTO | null>(null);
-  const busy = useRef(false), mounted = useRef(true), latest = useRef(draft);
+  const busy = useRef(false), mounted = useRef(true), latest = useRef(draft), accepted = useRef(project);
   const dirty = !same(draft, fields(base));
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
@@ -28,10 +28,16 @@ export function PlanEditor({ project }: { project: ProjectDTO }) {
     return () => { window.removeEventListener("beforeunload", unload); document.removeEventListener("click", navigate, true); };
   }, [dirty, status]);
   const accept = useCallback((saved: ProjectDTO, sent: Fields) => {
+    if (saved.id !== accepted.current.id || saved.resourceVersion < accepted.current.resourceVersion) return;
+    accepted.current = saved;
     const normalized = fields(saved), current = latest.current;
     const merged = { ...current }; for (const key of names) if (current[key] === sent[key]) merged[key] = normalized[key];
     latest.current = merged; setDraft(merged); setBase(saved); setRemote(null); setError(""); setStatus("idle");
   }, []);
+  const acceptRefresh = useCallback((saved: ProjectDTO) => {
+    if (busy.current || !same(latest.current, fields(accepted.current))) return;
+    accept(saved, latest.current);
+  }, [accept]);
   const reconcile = useCallback(async (sent: Fields) => {
     setStatus("checking");
     const response = await fetch(`/api/v1/projects/${project.id}`, { cache: "no-store", signal: AbortSignal.timeout(15000) });
@@ -67,19 +73,19 @@ export function PlanEditor({ project }: { project: ProjectDTO }) {
     try { await reconcile({ ...latest.current }); } catch { setStatus("error"); setError("Still unable to connect. Your edits remain here."); } finally { busy.current = false; }
   }
   function change(key: keyof Fields, value: string) { const updated = { ...latest.current, [key]: value }; latest.current = updated; setDraft(updated); }
-  function useSaved() { if (!remote || !window.confirm("Replace your local edits with the saved version?")) return; const next = fields(remote); latest.current = next; setDraft(next); setBase(remote); setRemote(null); setError(""); setStatus("idle"); }
+  function useSaved() { if (!remote || !window.confirm("Replace your local edits with the saved version?")) return; const next = fields(remote); latest.current = next; setDraft(next); accepted.current = remote; setBase(remote); setRemote(null); setError(""); setStatus("idle"); }
   return <div className="plan-editor"><header className="page-heading"><p className="eyebrow">01 / Shape your idea</p><h1>Make the idea yours.</h1><p className="lead">A clear plan is where a good explanation begins.</p></header>
     <div className="plan-save-bar"><p role="status" aria-live="polite">{status === "saving" ? "Saving…" : status === "checking" ? "Checking saved version…" : status === "conflict" ? "Review changes" : status === "error" ? "Not saved" : dirty ? "Unsaved changes · autosave shortly" : "All changes saved"}</p><span>Revision {base.revision}</span></div>
     {error && <div className="auth-error" role="alert"><p>{error}</p>{status === "error" && <button type="button" className="button secondary" onClick={() => void checkSaved()}>Check saved version</button>}</div>}
-    {remote && status === "conflict" && <section className="plan-conflict" aria-labelledby="conflict-heading"><h2 id="conflict-heading">Choose how to continue</h2><p>The saved version is revision {remote.revision}. Saving yours will replace its plan fields.</p><div className="plan-compare"><div><h3>Your local version</h3>{names.map(k => <div key={k}><strong>{labels[k]}</strong><p>{draft[k] || "Not specified"}</p></div>)}</div><div><h3>Latest saved version</h3>{names.map(k => <div key={k}><strong>{labels[k]}</strong><p>{fields(remote)[k] || "Not specified"}</p></div>)}</div></div><div className="plan-actions"><button type="button" className="button secondary" onClick={useSaved}>Use saved version</button><button type="button" className="button primary" onClick={() => { setBase(remote); setRemote(null); setError(""); setStatus("idle"); }}>Save my version</button></div></section>}
+    {remote && status === "conflict" && <section className="plan-conflict" aria-labelledby="conflict-heading"><h2 id="conflict-heading">Choose how to continue</h2><p>The saved version is revision {remote.revision}. Saving yours will replace its plan fields.</p><div className="plan-compare"><div><h3>Your local version</h3>{names.map(k => <div key={k}><strong>{labels[k]}</strong><p>{draft[k] || "Not specified"}</p></div>)}</div><div><h3>Latest saved version</h3>{names.map(k => <div key={k}><strong>{labels[k]}</strong><p>{fields(remote)[k] || "Not specified"}</p></div>)}</div></div><div className="plan-actions"><button type="button" className="button secondary" onClick={useSaved}>Use saved version</button><button type="button" className="button primary" onClick={() => { accepted.current = remote; setBase(remote); setRemote(null); setError(""); setStatus("idle"); }}>Save my version</button></div></section>}
     <div className="plan-layout"><form className="project-form" onSubmit={event => { event.preventDefault(); if (status === "idle") void save(); }}>
       <fieldset disabled={ideaBusy} className="plan-fieldset"><label htmlFor="plan-title">Project title<input id="plan-title" value={draft.title} onChange={event => change("title", event.target.value)} /></label>
       <label htmlFor="plan-idea">Your plan</label><textarea id="plan-idea" rows={9} value={draft.refinedIdea} onChange={event => change("refinedIdea", event.target.value)} aria-describedby="plan-count" /><p id="plan-count" className="field-hint">{[...draft.refinedIdea].length.toLocaleString()} / 5,000 characters. Explain what the viewer should understand.</p>
       <div className="project-form-pair"><label htmlFor="plan-audience">Audience <span>(optional)</span><input id="plan-audience" value={draft.audience} onChange={event => change("audience", event.target.value)} /></label><label htmlFor="plan-niche">Niche <span>(optional)</span><input id="plan-niche" value={draft.niche} onChange={event => change("niche", event.target.value)} /></label></div>
       <div className="project-form-footer"><p>Your changes save after a short pause.</p><button className="button primary" disabled={!dirty || status !== "idle"} type="submit">Save now</button></div>
     </fieldset></form><aside className="plan-reference"><p className="eyebrow">The starting point</p><h2>Your original idea</h2><p className="saved-idea">{project.originalIdea}</p><div><span className="status-label">{project.settings.targetDurationSeconds}s target</span><p className="field-hint">This original stays here as a reference while you shape your plan.</p></div></aside></div>
-    <IdeaPanel project={base} disabled={dirty || ideaBusy || status !== "idle"} onBusy={setIdeaBusy} onProject={p => { if (!same(latest.current, fields(base))) return; accept(p, latest.current); }} />
-    <StoryboardPanel project={base} disabled={dirty || ideaBusy || status !== "idle"} onBusy={setIdeaBusy} onProject={p => { if (!same(latest.current, fields(base))) return; accept(p, latest.current); }} />
+    <IdeaPanel project={base} disabled={dirty || ideaBusy || status !== "idle"} onBusy={setIdeaBusy} onProject={acceptRefresh} />
+    <StoryboardPanel project={base} disabled={dirty || ideaBusy || status !== "idle"} onBusy={setIdeaBusy} onProject={acceptRefresh} />
     <div className="project-next"><p>Your plan and accepted storyboards stay saved in this project.</p>{!dirty && !ideaBusy && status === "idle" && <DeleteProject key={base.revision} id={base.id} title={base.title} revision={base.revision} />}</div>
   </div>;
 }
