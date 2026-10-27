@@ -38,6 +38,14 @@ F09's documented limits still apply: polling MongoDB queue, no generic outbox/in
 
 ## Evidence
 
+### Owner review and cancellation follow-up — 2026-10-27
+
+Owner passed generation, reload recovery, explicit acceptance, plan-change warning, replacement, saved history and mobile review. Provider/network failures, quotas, access controls, stale proposals, dismissal and pagination remain untested by the owner.
+
+Cancel now handles the worker claiming a queued job before the command arrives: after an explicit VERSION_CONFLICT, the client reads that same job and submits its current version once with a fresh idempotency key. An uncertain response to that replacement reuses its key. Completed or already-cancelling jobs are refreshed without another mutation; another version conflict is surfaced instead of looping. Server version/ownership/CSRF enforcement is unchanged. Running work cancels cooperatively after the provider settles; it cannot undo completed work or avoid costs already incurred.
+
+The HTTP-handler/database regression forces this race and verifies cancellation discards the provider result, creates no proposal and clears the project job reference. Helper tests cover replacement-key preservation after a lost response, terminal/already-cancelling outcomes and bounded conflicts. All 30 affected tests passed across final runs; TypeScript, lint and production build passed. Footer, home and new-project guidance now reflect available storyboard tools. Owner should refresh the preview and retest Cancel before F11.
+
 ### Timeout fix — completed 2026-10-27
 
 The browser stopped waiting after 15 seconds while repeated full database audits took 23.1 seconds before admission. Runtime planning commands now check the relevant APPLIED migration receipts and exact checksums on every request, without caching. Full validator/index drift verification remains in the explicit verification command and planning-worker startup; operators must run that verification after database schema maintenance. Migration definitions and checksums are unchanged.

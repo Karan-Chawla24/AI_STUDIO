@@ -9,7 +9,7 @@ export default function HomePage() {
   return <div className="page-content">
     <div className="page-heading"><p className="eyebrow">A space for your next explanation</p><h1>Good ideas deserve<br />a clear picture.</h1><p className="lead">Shape what you know into something worth watching.</p></div>
     <section className="intro-panel" aria-labelledby="intro-title">
-      <div className="intro-copy"><span className="status-label">From a question to a story</span><h2 id="intro-title">Make the complex<br />feel simple.</h2><p>Start with an idea. Shape the story, bring it to life, and share what matters.</p><Link className="button primary" href="/projects/new">Create a draft<Icon name="arrow" /></Link><small>Save your idea now. Storyboard tools arrive in a later milestone.</small></div>
+      <div className="intro-copy"><span className="status-label">From a question to a story</span><h2 id="intro-title">Make the complex<br />feel simple.</h2><p>Start with an idea. Shape the story, bring it to life, and share what matters.</p><Link className="button primary" href="/projects/new">Create a draft<Icon name="arrow" /></Link><small>Start with an idea, then generate and review your storyboard.</small></div>
       <div className="story-graphic" role="img" aria-label="An idea becomes a plan, a storyboard, then a video">
         <div className="graphic-grid" />
         <div className="idea-card"><span className="signal-dot" /> A curious question<div>How does the<br /><strong>internet work?</strong></div></div>

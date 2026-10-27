@@ -6,7 +6,7 @@ This is the source of truth for implementation progress. The PRD defines product
 
 ## Current milestone
 
-**F10 — Storyboard generation and explicit review are ready for owner testing.** All 83 regression tests, desktop/mobile browser checks, a real Gemini eight-scene generation, typecheck/lint, production build and Atlas migration/verification passed. The preview and workers are running. Finish F10 owner testing before F11.
+**F10 — Owner main-flow review passed; cancellation follow-up is ready for retest.** Owner confirmed generation, reload recovery, acceptance, plan-change warning, replacement, saved history and mobile review. Cancellation race recovery and outdated interface copy are fixed. Finish the cancellation retest before F11; remaining owner-untested paths are recorded below.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -42,6 +42,14 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-27 — F10 owner review and cancellation race recovery
+
+- Owner passed generation, reload recovery, explicit acceptance, plan-change warning, replacement, saved version history and mobile review. Owner has not tested provider/network failures, quotas, access controls, stale proposals, dismissal or pagination; automated coverage is not recorded as owner acceptance.
+- Cancel could submit the queued job version after the worker claimed it, producing VERSION_CONFLICT. Both planning panels now refresh that exact job on an explicit version conflict and retry cancellation once with the current version and a new idempotency key. Lost acknowledgements reuse the replacement key. Already-cancelling or completed jobs refresh without another mutation. Server version, ownership and CSRF checks are unchanged; recovery is bounded.
+- Running cancellation remains cooperative: the existing provider request must settle, its result is discarded after cancellation, and uncertain provider outcomes still require operator review. A job that completed before cancellation cannot be retroactively cancelled.
+- Updated outdated storyboard messaging in the footer, home and new-project pages. No schema changes or paid provider requests.
+- All 30 affected tests passed across the final runs (12 idea, 7 request-helper, 11 storyboard). The new real HTTP-handler/database regression forces queued-to-running overlap and verifies 409 → refreshed job → accepted cancellation, CANCELLED state, zero proposals and a released project job reference. An initial test assertion used the DTO field instead of the persisted field; corrected it and reran all 11 storyboard tests. TypeScript, lint and production build passed. Rebuilt local preview activated on port 3001; planning worker code is unchanged. Await owner cancellation retest before F11.
 
 ### 2026-10-27 — Owner test account
 

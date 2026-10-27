@@ -14,6 +14,8 @@ import {ideaList,ideasRequest} from "../src/server/projects/ideas-http";
 import {csrfToken} from "../src/server/projects/http";
 import {updatePlan} from "../src/server/projects/plan";
 import {deleteProject,cleanDeletion} from "../src/server/projects/deletion";
+import {sendPlanningCancellation} from "../src/shared/planning-request";
+import type {IdeaJob} from "../src/server/projects/ideas-model";
 let server:MongoMemoryReplSet,c:DatabaseConnection;
 const owner="story-owner",user={id:owner,name:"Story Test",email:"story@example.com",emailVerified:true,createdAt:new Date(),updatedAt:new Date()},config={origin:"http://localhost:3001",secure:false,secret:"a".repeat(40)};
 const fixture=()=>({title:"The internet, explained",hook:"What happens after you tap a link?",scenes:Array.from({length:6},(_,i)=>({narration:`Step ${i+1}: Your browser sends a small request through the network. Each device helps that request reach the server and find its way back.`,visualDescription:"Show a browser connected to a server with a labelled arrow.",motionDescription:"Reveal the browser, then move a small packet along the arrow as the narration describes it.",sceneType:i===0?"TITLE":"PROCESS_FLOW",captionHighlights:["browser"]}))});
@@ -24,6 +26,28 @@ const generate=async(id:string,revision=1,replace=false)=>{const a=await admit(i
 const apply=(id:string,p:StoryboardProposal,revision=p.baseRevision,key=randomUUID(),requestId=randomUUID())=>decideProposal(c,owner,id,p._id,"apply",{expectedVersion:p.version,expectedRevision:revision},key,requestId);
 before(async()=>{server=await MongoMemoryReplSet.create({binary:{version:"8.2.6"},replSet:{count:1}});c=await connectDatabase({uri:server.getUri(),database:"studio_storyboard_test",production:false});await migrateIdeas(c.db);const old=await c.db.collection("schemaMigrations").find({state:"APPLIED"}).toArray();await migrateStoryboards(c.db);for(const row of old)assert.equal((await c.db.collection("schemaMigrations").findOne({_id:row._id}))?.checksum,row.checksum);await provisionProfile(c.db,user);await provisionProfile(c.db,{...user,id:"story-other"});},{timeout:240000});
 after(async()=>{await c?.client.close();await server?.stop();});
+
+test("cancel from a queued view recovers after worker claim and discards the running result",async()=>{
+ const p=await create(),admitted=await admit(p.id),id=String(admitted.data.jobId);
+ const profile=(await provisionProfile(c.db,user))!,identity={user,profile,sessionId:"cancel-session"};
+ let release!:()=>void,entered!:()=>void;const waiting=new Promise<void>(resolve=>{entered=resolve;});
+ const running=runIdea(c,id,async()=>{entered();await new Promise<void>(resolve=>{release=resolve;});return fixture();});
+ await waiting;
+ try {
+  const statuses:number[]=[];
+  const fetcher:typeof fetch=async(path,init)=>{
+   const headers=new Headers(init?.headers);headers.set("Origin",config.origin);
+   const url=new URL(String(path),config.origin);
+   const result=await ideasRequest(new Request(url,{...init,headers}),p.id,url.pathname.split("/").slice(5),{connection:c,config,identity});
+   statuses.push(result.status);return result;
+  };
+  const result=await sendPlanningCancellation({path:`/api/v1/projects/${p.id}/jobs/${id}/cancel`,body:{expectedVersion:1},key:randomUUID()},csrfToken(identity,config.secret),()=>{},()=>{},fetcher);
+  assert.deepEqual(statuses,[409,200,202]);assert.equal(result.body.data.state,"CANCEL_REQUESTED");
+ } finally {release();await running;}
+ const job=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:id});
+ assert.equal(job?.state,"CANCELLED");assert.equal(await c.db.collection("proposals").countDocuments({sourceJobId:id}),0);
+ assert.equal((await readProject(c,owner,p.id)).activeJobId,null);
+});
 test("forward migration is repeatable and keeps earlier checksums valid",async()=>{assert.equal(await migrateStoryboards(c.db),"already-applied");await verifyStoryboards(c.db);});
 test("provider contract rejects arbitrary fields, unsupported types, bad counts and highlights",()=>{
  assert.throws(()=>storyboardInput({guidance:"x"}),{code:"PRECONDITION_REQUIRED"});assert.throws(()=>storyboardInput({expectedRevision:1,replaceExistingConfirmed:"yes"}));

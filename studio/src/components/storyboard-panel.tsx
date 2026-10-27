@@ -1,5 +1,5 @@
 "use client";
-import {sendPlanningCommand,planningErrorMessage} from "@/shared/planning-request";
+import {sendPlanningCommand,sendPlanningCancellation,planningErrorMessage} from "@/shared/planning-request";
 import {useCallback,useEffect,useRef,useState} from "react";
 import type {ProjectDTO} from "@/server/projects/model";
 import type {StoryboardDTO} from "@/server/projects/storyboard-model";
@@ -27,7 +27,7 @@ export function StoryboardPanel({project,disabled,onProject,onBusy}:{project:Pro
  async function command(path:string,body:object,retry=false){
   if(gate.current)return;gate.current=true;setWorking(true);onBusy(true);setError("");setRecovering(false);
   const op=retry&&pending.current?pending.current:{path,body,key:crypto.randomUUID()};pending.current=op;setHasPending(true);
-  try{const csrf=await read("/api/v1/csrf");const {response:r,body:b}=await sendPlanningCommand(op,csrf.token,()=>setRecovering(true));
+  try{const csrf=await read("/api/v1/csrf");const {response:r,body:b}=await (op.path.endsWith("/cancel")?sendPlanningCancellation(op,csrf.token,()=>setRecovering(true),replacement=>{pending.current=replacement;}):sendPlanningCommand(op,csrf.token,()=>setRecovering(true)));
    if(!r.ok){if(r.status<500){pending.current=null;setHasPending(false);}throw new Error(b.error?.message??"Could not complete this request.");}
    pending.current=null;setHasPending(false);if(b.data.project)callback.current(b.data.project);setViewed(null);await refresh();
   }catch(e){if(mounted.current){setError(planningErrorMessage(e));await refresh();}}finally{gate.current=false;if(mounted.current){setWorking(false);onBusy(false);}}

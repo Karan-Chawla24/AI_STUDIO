@@ -1,5 +1,5 @@
 "use client";
-import {sendPlanningCommand,planningErrorMessage} from "@/shared/planning-request";
+import {sendPlanningCommand,sendPlanningCancellation,planningErrorMessage} from "@/shared/planning-request";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProjectDTO } from "@/server/projects/model";
 import type { jobDTO, proposalDTO, Idea } from "@/server/projects/ideas-model";
@@ -20,7 +20,7 @@ export function IdeaPanel({project,disabled,onProject,onBusy}:{project:ProjectDT
   if(gate.current)return;gate.current=true;setWorking(true);onBusy(true);setError("");setRecovering(false);
   const operation=retry&&pending.current?pending.current:{path,body,key:crypto.randomUUID()};pending.current=operation;setHasPending(true);
   try{
-   const csrf=await read("/api/v1/csrf");const {response:r,body:b}=await sendPlanningCommand(operation,csrf.token,()=>setRecovering(true));
+   const csrf=await read("/api/v1/csrf");const {response:r,body:b}=await (operation.path.endsWith("/cancel")?sendPlanningCancellation(operation,csrf.token,()=>setRecovering(true),replacement=>{pending.current=replacement;}):sendPlanningCommand(operation,csrf.token,()=>setRecovering(true)));
    if(!r.ok){if(r.status<500){pending.current=null;setHasPending(false);}throw new Error(b.error?.message??"Couldn’t complete the request.");}
    pending.current=null;setHasPending(false);
    if(b.data.project)onProject(b.data.project);
