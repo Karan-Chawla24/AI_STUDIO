@@ -43,6 +43,10 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Change log
 
+### 2026-10-27 — Owner test account
+
+- Created a dedicated test account through the local sign-up endpoint at the owner's request, confirmed its email through the local preview flow, and verified successful sign-in with authoritative emailVerified=true. Credentials remain outside Git. No existing accounts or projects were changed; no paid generation was requested. This is account setup only, with no application code changes.
+
 ### 2026-10-27 — Finish F10 timeout recovery fix
 
 - The October 26 fix was saved but activation was interrupted by an automatic approval-review usage limit. Completed the production build and restarted the preview and planning worker with the fix on October 27. No jobs were queued or running at restart.
