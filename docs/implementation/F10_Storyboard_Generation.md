@@ -38,6 +38,16 @@ F09's documented limits still apply: polling MongoDB queue, no generic outbox/in
 
 ## Evidence
 
+### Timeout fix — completed 2026-10-27
+
+The browser stopped waiting after 15 seconds while repeated full database audits took 23.1 seconds before admission. Runtime planning commands now check the relevant APPLIED migration receipts and exact checksums on every request, without caching. Full validator/index drift verification remains in the explicit verification command and planning-worker startup; operators must run that verification after database schema maintenance. Migration definitions and checksums are unchanged.
+
+An interrupted acknowledgement triggers at most one automatic replay with the same URL, serialized body, CSRF token and idempotency key. Explicit HTTP responses are not automatically retried. If both attempts fail, the UI refreshes persisted status, retains the original pending operation and offers a safe retry. This does not automatically resend Gemini provider calls or alter existing proposals.
+
+The focused 26 tests passed again on October 27, including guards for migration-state/checksum changes and zero collection/index audits during admission/replay/apply/worker polling. The recorded browser test delayed a successful acknowledgement for 18 seconds; recovery completed with exactly one durable job, and desktop/390px/320px checks reported no page errors. See [diagnosis](F10-timeout-diagnosis.json) and [browser regression](F10-timeout-browser-verification.json). TypeScript, lint and the production build passed and updated preview/worker were activated; worker startup passed full Atlas verification. No paid generation was required for this fix. The original October 26 activation attempt was interrupted before build/restart and was completed on October 27.
+
+### Original F10 milestone
+
 - All 83 regression tests passed, including eight storyboard integration tests for migration compatibility, validation/hash identity, explicit acceptance/idempotency, replacement/history/ownership, stale plans, concurrent apply, rollback, cancellation/deletion and HTTP guards.
 - Chrome desktop/390px/320px checks passed verification gating, queued reload, review before apply, accepted persistence, plan-change warning, confirmed replacement and history, with no page errors. See F10-browser-verification.json and the screenshots.
 - One real Gemini 3.8 Flash request produced eight validated scenes in a PENDING proposal and a SUCCEEDED job, using an isolated temporary replica set. No owner drafts changed. See F10-live-verification.json.

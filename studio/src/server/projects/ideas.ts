@@ -1,5 +1,5 @@
 import { generateStoryboard } from "./storyboard-provider";
-import { verifyStoryboards } from "./storyboard-schema";
+import { requireStoryboardMigration } from "./storyboard-schema";
 import { validateStoryboard, proposedStoryboard, snapshotFromProposal, storyboardDTO, type Storyboard, type PlanningProposal, type StoryboardInput } from "./storyboard-model";
 import "server-only";
 import { createHash } from "node:crypto";
@@ -8,13 +8,13 @@ import { inTransaction, type DatabaseConnection } from "../db/client";
 import type { UserProfile } from "../auth/profile";
 import { ProjectError, uuid7, projectDTO, planChangedWarning, type Project } from "./model";
 import { missingProject, readProject } from "./service";
-import { verifyIdeas } from "./ideas-schema";
+import { requireIdeasMigration } from "./ideas-schema";
 import { ideaConfig, generateIdeas } from "./ideas-provider";
 import { validateIdeas, proposalDTO, jobDTO, type IdeaJob, type IdeaInput, } from "./ideas-model";
 export const digest = (v: unknown) => createHash("sha256").update(JSON.stringify(v)).digest("hex");
 type Receipt = Document & { _id: string; requestHash: string; responseBody: Document; responseStatus: number; expiresAt: Date | null };
 export async function ideaCommand(c: DatabaseConnection, owner: string, projectId: string, route: string, key: string, input: unknown, run: (p: Project, session: ClientSession) => Promise<{data: Document; status: number; operationId: string; pending?: boolean}>) {
- await verifyIdeas(c.db); const scope = {ownerId:owner,method:"POST",routeKey:route,keyHash:digest(key)}, hash = digest(input), receiptId=uuid7();
+ await requireIdeasMigration(c.db); const scope = {ownerId:owner,method:"POST",routeKey:route,keyHash:digest(key)}, hash = digest(input), receiptId=uuid7();
  return inTransaction(c.client,async session => {
   if (!await c.db.collection<UserProfile>("userProfiles").findOneAndUpdate({_id:owner,lifecycle:"ACTIVE"},{$inc:{fenceVersion:1}},{session})) throw new ProjectError("ACCOUNT_DELETING","This account cannot change projects.",403);
   const p = await c.db.collection<Project>("projects").findOne({_id:projectId,ownerId:owner,lifecycle:"ACTIVE"},{session}); if (!p) throw missingProject();
@@ -28,7 +28,7 @@ export async function ideaCommand(c: DatabaseConnection, owner: string, projectI
 }
 export async function admitIdeas(c:DatabaseConnection,owner:string,projectId:string,kind:IdeaJob["kind"],input:IdeaInput | StoryboardInput,key:string,verified:boolean,model?:string) {
  if(!verified) throw new ProjectError("EMAIL_NOT_VERIFIED","Verify your email before generating ideas.",403);
- if(kind==="STORYBOARD_GENERATE")await verifyStoryboards(c.db);
+ if(kind==="STORYBOARD_GENERATE")await requireStoryboardMigration(c.db);
  const jobId=uuid7(), now=new Date(), route=kind==="STORYBOARD_GENERATE"?`/api/v1/projects/${projectId}/storyboards/generate`:`/api/v1/projects/${projectId}/ideas/${kind === "IDEA_REFINE" ? "refine":"brainstorm"}`;
  return ideaCommand(c,owner,projectId,route,key,input,async(p,session)=>{
   const configuredModel = model ?? ideaConfig().model;
@@ -58,7 +58,7 @@ export async function decideProposal(c:DatabaseConnection,owner:string,projectId
   }
   if(proposal.kind==="STORYBOARD") {
    if(input.selectedIdeaId!==undefined)throw new ProjectError("VALIDATION_FAILED","Do not select an idea when applying a storyboard.",422);
-   await verifyStoryboards(c.db);
+   await requireStoryboardMigration(c.db);
    const snapshot=snapshotFromProposal(proposal,p.nextStoryboardVersion);
    await c.db.collection<Storyboard>("storyboards").insertOne(snapshot,{session});
    const saved=await c.db.collection<Project>("projects").findOneAndUpdate({_id:projectId,resourceVersion:p.resourceVersion,lifecycle:"ACTIVE"},{$set:{activeStoryboardId:snapshot._id,approval:null,currentSnapshotHash:null,warnings:[],updatedAt:now,"statusProjection.creationStatus":"STORYBOARD_REVIEW","statusProjection.computedAt":now},$inc:{revision:1,resourceVersion:1,nextStoryboardVersion:1,"publishFence.epoch":1}},{session,returnDocument:"after"});
@@ -128,7 +128,7 @@ export async function runIdea(c:DatabaseConnection,id:string,provider?:typeof ge
  });
 }
 export async function drainIdeas(c:DatabaseConnection,provider?:typeof generateIdeas) {
- await verifyIdeas(c.db);
+ await requireIdeasMigration(c.db);
  const expired=await c.db.collection<IdeaJob>("generationJobs").find({state:"RUNNING","lease.expiresAt":{$lte:new Date()}}).limit(50).toArray();
  for(const row of expired) await inTransaction(c.client,async session=>{const job=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:row._id,state:"RUNNING","lease.expiresAt":{$lte:new Date()}},{session});if(!job)return;await c.db.collection("providerCalls").updateOne({jobId:job._id,state:"SENT"},{$set:{state:"OUTCOME_UNKNOWN",updatedAt:new Date()}},{session});await finish(c,job,"REQUIRES_ATTENTION",{code:"PROVIDER_OUTCOME_UNKNOWN",message:"The worker stopped before recording the response. Operator review is required."},session);});
  const jobs=await c.db.collection<IdeaJob>("generationJobs").find({state:"QUEUED",active:true}).sort({createdAt:1}).limit(10).toArray();

@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-26",
+  "database": "configured Atlas database; read-only diagnostics",
+  "before": {"fullStoryboardAuditMs": 12271, "repeatedIdeaAuditMs": 10830, "combinedPreflightMs": 23101},
+  "after": {"storyboardMigrationReceiptMs": 313, "ideaMigrationReceiptMs": 309, "combinedPreflightMs": 622},
+  "browserCommandTimeoutMs": 15000,
+  "existingUserResult": "SUCCEEDED, one saved proposal; preserved without regeneration",
+  "scope": "Preflight measurements only, not total generation time. No paid provider request made for this fix."
+}

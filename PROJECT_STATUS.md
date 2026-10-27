@@ -1,6 +1,6 @@
 # Project status — Educational Video Studio
 
-Last updated: 2026-10-26
+Last updated: 2026-10-27
 
 This is the source of truth for implementation progress. The PRD defines product scope; the API, database and system-design documents define the implementation contracts. Stitch boards are visual references, not proof that features work.
 
@@ -42,6 +42,14 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-27 — Finish F10 timeout recovery fix
+
+- The October 26 fix was saved but activation was interrupted by an automatic approval-review usage limit. Completed the production build and restarted the preview and planning worker with the fix on October 27. No jobs were queued or running at restart.
+- Root cause: storyboard admission repeated full database schema/index audits, measured at 23,101 ms against the browser's 15,000 ms timeout. Runtime commands now check applied migration receipts and checksums (622 ms combined in the recorded Atlas measurement). Full schema/index audits remain in explicit verification and worker startup. No schema migration changed or is needed.
+- Idea/storyboard commands recover an interrupted acknowledgement once using the exact original request and idempotency key. Unknown outcomes retain a safe same-request retry and refresh persisted status; raw browser timeout text is replaced with actionable feedback. Authorization, transactions, quota and duplicate-job protection remain enforced.
+- All 26 affected integration/request tests passed again on October 27. The October 26 browser regression withheld an accepted response for 18 seconds and recovered in 16,809 ms with exactly one job; desktop/mobile checks passed with no page errors. Evidence: docs/implementation/F10-timeout-diagnosis.json and F10-timeout-browser-verification.json. Timings measure preflight/recovery, not Gemini generation speed.
+- npm run check (TypeScript and lint) and production build passed. Preview is ready at http://localhost:3001 (sign-in 200, anonymous project API 401); the planning worker passed full Atlas schema/index verification and reported ready. Existing saved storyboard results were preserved; no paid provider call was needed for this fix. Finish owner testing before F11.
 
 ### 2026-10-26 — F10 storyboard generation and immutable version review
 

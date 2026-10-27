@@ -63,3 +63,23 @@ test("HTTP enforces verification and strict body; storyboard apply rejects selec
  const response=await ideasRequest(new Request(`${config.origin}/api/v1/projects/${p.id}/storyboards/generate`,{method:"POST",headers:{Origin:config.origin,"Content-Type":"application/json","X-CSRF-Token":csrfToken(identity,config.secret),"Idempotency-Key":randomUUID()},body:JSON.stringify({expectedRevision:1})}),p.id,["storyboards","generate"],{connection:c,config,identity:{...identity,user:{...user,emailVerified:false}}});assert.equal(response.status,403);
  const q=await generate(p.id);await assert.rejects(decideProposal(c,owner,p.id,q._id,"apply",{expectedRevision:1,expectedVersion:1,selectedIdeaId:"unexpected"},randomUUID(),randomUUID()),{code:"VALIDATION_FAILED"});
 });
+test("planning admission, replay, worker and apply do not run collection/index audits",async(t)=>{
+ const p=await create();
+ const audit=t.mock.method(c.db,"listCollections",()=>{throw new Error("full metadata audit on the request path");});
+ try {
+  const key=randomUUID(),accepted=await admit(p.id,1,false,key);
+  assert.equal((await admit(p.id,1,false,key)).data.jobId,accepted.data.jobId);
+  await runIdea(c,String(accepted.data.jobId),async()=>fixture());
+  const result=await apply(p.id,await proposal(p.id));assert.equal(result.data.storyboard.scenes.length,6);
+  assert.equal(audit.mock.callCount(),0);
+  await assert.rejects(verifyStoryboards(c.db),/full metadata audit/);
+ }finally{audit.mock.restore();}
+});
+test("fast planning guard rejects non-applied or changed migration receipts on every request",async()=>{
+ const p=await create();const migrations=c.db.collection<{_id:string;state:string;checksum:string}>("schemaMigrations");
+ for(const id of ["F09_0001_idea_proposals","F10_0001_storyboards"]){const original=(await migrations.findOne({_id:id}))!;
+  try{await migrations.updateOne({_id:id},{$set:{state:"FAILED"}});await assert.rejects(admit(p.id));await migrations.updateOne({_id:id},{$set:{state:"APPLIED",checksum:"0".repeat(64)}});await assert.rejects(admit(p.id));}
+  finally{await migrations.updateOne({_id:id},{$set:{state:original.state,checksum:original.checksum}});}
+ }
+ assert.equal(await c.db.collection("generationJobs").countDocuments({projectId:p.id}),0);
+});
