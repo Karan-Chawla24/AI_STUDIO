@@ -43,6 +43,12 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Change log
 
+### 2026-10-28 — F11 source-index migration recovery
+
+- Fixed recovery when F11 drops the old storyboard_source index but replacement creation fails. A matching FAILED/RUNNING F11 receipt now resumes directly through the migration runner, which acquires the global lock and checks the checksum before any writes. Its prerequisite verification tolerates only the missing source index; it still verifies earlier migration receipts, validators and every other index. The replacement is recreated inside the locked apply phase, followed by full verification.
+- Normal verification and reruns of an APPLIED migration still reject missing indexes. Unrelated index drift, mismatched checksums and held/expired migration locks do not activate repair. Existing migration checksums and index definitions are unchanged; no new migration or Atlas index changes are required for the already-healthy local deployment.
+- All 21 affected migration-control, scene and recovery tests passed. Failure injection throws after the old index is dropped; the test verifies FAILED state, strict verification failure, lock protection, successful retry, the partial unique replacement, preserved AI/manual snapshots and prior checksums, enforced proposal uniqueness, APPLIED state and idempotent rerun. Additional checks reject unrelated drift and unauthorized recovery. TypeScript, lint and production build passed; the local preview was restarted. Tests used disposable databases; Atlas indexes were not changed.
+
 ### 2026-10-28 — F11 scene editing and regeneration
 
 - Owner authorized F11. Added title/hook editing, per-scene narration/visual/motion/type/highlight edits, automatic or overridden speech text, explicit saves, retained conflict drafts and latest-version comparison. Saved edits create immutable versions with stable scene IDs; exact no-ops and retry receipts do not create extra versions. Scene editor state survives background snapshot changes.
