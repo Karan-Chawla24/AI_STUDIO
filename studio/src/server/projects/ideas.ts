@@ -1,3 +1,5 @@
+import {requireCompileMigration} from "./compile-schema";
+import {generateLayouts,compileStoryboard,snapshotHash} from "./compiler";
 import {requireSceneMigration} from "./scene-schema";
 import {regeneratedStoryboard,type RegenerateInput} from "./scene-model";
 import {generateScene} from "./scene-provider";
@@ -31,9 +33,10 @@ export async function ideaCommand(c: DatabaseConnection, owner: string, projectI
 }
 export async function admitIdeas(c:DatabaseConnection,owner:string,projectId:string,kind:IdeaJob["kind"],input:IdeaInput | StoryboardInput | RegenerateInput,key:string,verified:boolean,model?:string) {
  if(!verified) throw new ProjectError("EMAIL_NOT_VERIFIED","Verify your email before generating ideas.",403);
+ if(kind==="STORYBOARD_COMPILE")await requireCompileMigration(c.db);
  if(kind==="SCENE_REGENERATE")await requireSceneMigration(c.db);
  if(kind==="STORYBOARD_GENERATE")await requireStoryboardMigration(c.db);
- const jobId=uuid7(), now=new Date(), route=kind==="SCENE_REGENERATE"?`/api/v1/projects/${projectId}/scenes/${(input as RegenerateInput).sceneId}/regenerate`:kind==="STORYBOARD_GENERATE"?`/api/v1/projects/${projectId}/storyboards/generate`:`/api/v1/projects/${projectId}/ideas/${kind === "IDEA_REFINE" ? "refine":"brainstorm"}`;
+ const jobId=uuid7(), now=new Date(), route=kind==="STORYBOARD_COMPILE"?`/api/v1/projects/${projectId}/storyboards/compile`:kind==="SCENE_REGENERATE"?`/api/v1/projects/${projectId}/scenes/${(input as RegenerateInput).sceneId}/regenerate`:kind==="STORYBOARD_GENERATE"?`/api/v1/projects/${projectId}/storyboards/generate`:`/api/v1/projects/${projectId}/ideas/${kind === "IDEA_REFINE" ? "refine":"brainstorm"}`;
  return ideaCommand(c,owner,projectId,route,key,input,async(p,session)=>{
   const configuredModel = model ?? ideaConfig().model;
   if(p.revision !== input.expectedRevision) throw new ProjectError("REVISION_CONFLICT","Your plan changed. Refresh it before generating.",409);
@@ -42,7 +45,9 @@ export async function admitIdeas(c:DatabaseConnection,owner:string,projectId:str
   if(await c.db.collection<IdeaJob>("generationJobs").countDocuments({ownerId:owner,createdAt:{$gt:new Date(Date.now()-3600000)}},{session}) >=20) throw new ProjectError("RATE_LIMITED","You have reached twenty planning requests this hour. Try later.",429);
   let sceneContext:NonNullable<IdeaJob["input"]>["sceneContext"];
   if(kind==="SCENE_REGENERATE"){const d=input as RegenerateInput;const base=await c.db.collection<Storyboard>("storyboards").findOne({_id:p.activeStoryboardId??"",ownerId:owner,projectId},{session});if(!base||!base.scenes.some(s=>s.sceneId===d.sceneId))throw missingProject();sceneContext={storyboard:storyboardDTO(base),sceneId:d.sceneId,scope:d.scope};}
-  const snapshot={...(sceneContext?{sceneContext}:{}),title:p.title,idea:p.refinedIdea??p.originalIdea,audience:p.audience,niche:p.niche,duration:p.settings.targetDurationSeconds,count:"count" in input?input.count:8,guidance:input.guidance,model:configuredModel};
+  let compileContext:NonNullable<IdeaJob["input"]>["compileContext"];
+  if(kind==="STORYBOARD_COMPILE"){const base=await c.db.collection<Storyboard>("storyboards").findOne({_id:p.activeStoryboardId??"",ownerId:owner,projectId},{session});if(!base)throw missingProject();compileContext=storyboardDTO(base);if(base.compileState==="VALID"&&base.compilerVersion==="editorial-v1")return {data:{project:projectDTO(p),storyboard:compileContext,reused:true},status:200,operationId:base._id};}
+  const snapshot={...(compileContext?{compileContext}:{}),...(sceneContext?{sceneContext}:{}),title:p.title,idea:p.refinedIdea??p.originalIdea,audience:p.audience,niche:p.niche,duration:p.settings.targetDurationSeconds,count:"count" in input?input.count:8,guidance:input.guidance,model:configuredModel};
   const job:IdeaJob={_id:jobId,schemaVersion:1,ownerId:owner,projectId,createdAt:now,updatedAt:now,resourceVersion:1,kind,state:"QUEUED",active:true,stage:"QUEUED",baseRevision:p.revision,input:snapshot,inputHash:digest(snapshot),proposalIds:[],cancelRequested:false,lease:{holder:null,epoch:0,expiresAt:null},startedAt:null,finishedAt:null,error:null,unsafeToRetry:false};
   await c.db.collection<IdeaJob>("generationJobs").insertOne(job,{session});
   await c.db.collection<Project>("projects").updateOne({_id:projectId,resourceVersion:p.resourceVersion},{$set:{activeJobId:jobId,updatedAt:now,"statusProjection.creationStatus":"PLANNING","statusProjection.computedAt":now},$inc:{resourceVersion:1}},{session});
@@ -62,6 +67,7 @@ export async function decideProposal(c:DatabaseConnection,owner:string,projectId
    if(proposal.state !== "CONFLICTED") await collection.updateOne({_id:id},{$set:{state:"CONFLICTED",updatedAt:now},$inc:{version:1}},{session});
    return {data:{code:"PROPOSAL_STALE",message:"This suggestion belongs to an older plan. Generate a new one or copy the text into your plan.",currentRevision:p.revision},status:409,operationId:id};
   }
+  if(proposal.kind==="COMPILE")throw new ProjectError("PROPOSAL_STALE","Compile the current storyboard again.",409);
   if(proposal.kind==="STORYBOARD"||proposal.kind==="SCENE") {
    if(input.selectedIdeaId!==undefined)throw new ProjectError("VALIDATION_FAILED","Do not select an idea when applying a storyboard.",422);
    if(proposal.kind==="SCENE")await requireSceneMigration(c.db);
@@ -99,7 +105,7 @@ export async function cancelIdea(c:DatabaseConnection,owner:string,projectId:str
 async function finish(c:DatabaseConnection,job:IdeaJob,state:IdeaJob["state"],error:IdeaJob["error"],session:ClientSession,proposalIds:string[]=[]) {
  const now=new Date(), unsafe=state==="REQUIRES_ATTENTION";
  await c.db.collection<IdeaJob>("generationJobs").updateOne({_id:job._id},{$set:{state,active:unsafe,stage:"FINISHED",finishedAt:now,updatedAt:now,error,unsafeToRetry:unsafe,proposalIds,"lease.expiresAt":null},$inc:{resourceVersion:1}},{session});
- await c.db.collection<Project>("projects").updateOne({_id:job.projectId,ownerId:job.ownerId,lifecycle:"ACTIVE",activeJobId:job._id},{$set:{activeJobId:unsafe?job._id:null,"statusProjection.creationStatus":unsafe?"NEEDS_ATTENTION":(await c.db.collection<Project>("projects").findOne({_id:job.projectId},{session}))?.activeStoryboardId?"STORYBOARD_REVIEW":"DRAFT","statusProjection.computedAt":now,updatedAt:now},$inc:{resourceVersion:1}},{session});
+ await c.db.collection<Project>("projects").updateOne({_id:job.projectId,ownerId:job.ownerId,lifecycle:"ACTIVE",activeJobId:job._id},{$set:{activeJobId:unsafe?job._id:null,"statusProjection.creationStatus":unsafe?"NEEDS_ATTENTION":(await c.db.collection<Project>("projects").findOne({_id:job.projectId},{session}))?.approval?"STORYBOARD_APPROVED":(await c.db.collection<Project>("projects").findOne({_id:job.projectId},{session}))?.activeStoryboardId?"STORYBOARD_REVIEW":"DRAFT","statusProjection.computedAt":now,updatedAt:now},$inc:{resourceVersion:1}},{session});
  if(!unsafe) await c.db.collection("idempotencyRecords").updateMany({operationId:job._id,state:"ACCEPTED"},{$set:{state:"TERMINAL",terminalAt:now,expiresAt:new Date(now.getTime()+7*86400000)}},{session});
 }
 export async function runIdea(c:DatabaseConnection,id:string,provider?:typeof generateIdeas) {
@@ -116,9 +122,10 @@ export async function runIdea(c:DatabaseConnection,id:string,provider?:typeof ge
   return updated;
  });
  if(!claimed?.input) return;
+ let compileResult:ReturnType<typeof compileStoryboard>|null=null;
  let sceneResult:ReturnType<typeof regeneratedStoryboard>|null=null;
  let ideas:ReturnType<typeof validateIdeas>|null=null, storyboard:ReturnType<typeof validateStoryboard>|null=null, failure:IdeaJob["error"]=null;
- try {const output=await (provider??(claimed.kind==="SCENE_REGENERATE"?generateScene:claimed.kind==="STORYBOARD_GENERATE"?generateStoryboard:generateIdeas))(claimed.input);if(claimed.kind==="SCENE_REGENERATE")sceneResult=regeneratedStoryboard(output,claimed);else if(claimed.kind==="STORYBOARD_GENERATE")storyboard=validateStoryboard(output);else ideas=validateIdeas(output,claimed.input.count);} catch(e) {failure=e instanceof ProjectError?{code:e.code,message:e.message}:{code:"PROVIDER_OUTCOME_UNKNOWN",message:"The provider result is uncertain. Operator review is required."};}
+ try {const output=await (provider??(claimed.kind==="STORYBOARD_COMPILE"?generateLayouts:claimed.kind==="SCENE_REGENERATE"?generateScene:claimed.kind==="STORYBOARD_GENERATE"?generateStoryboard:generateIdeas))(claimed.input);if(claimed.kind==="STORYBOARD_COMPILE")compileResult=compileStoryboard(claimed.input.compileContext!,output);else if(claimed.kind==="SCENE_REGENERATE")sceneResult=regeneratedStoryboard(output,claimed);else if(claimed.kind==="STORYBOARD_GENERATE")storyboard=validateStoryboard(output);else ideas=validateIdeas(output,claimed.input.count);} catch(e) {failure=e instanceof ProjectError?{code:e.code,message:e.message}:{code:"PROVIDER_OUTCOME_UNKNOWN",message:"The provider result is uncertain. Operator review is required."};}
  const proposalId=uuid7();
  await inTransaction(c.client,async session=>{
   const job=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:id,state:"RUNNING","lease.holder":holder,"lease.epoch":claimed.lease.epoch},{session}); if(!job) return;
@@ -128,9 +135,17 @@ export async function runIdea(c:DatabaseConnection,id:string,provider?:typeof ge
   if(!p) {await finish(c,job,"CANCELLED",null,session);return;}
   if(unsafe) {await finish(c,job,"REQUIRES_ATTENTION",failure,session);return;}
   if(job.cancelRequested) {await finish(c,job,"CANCELLED",null,session);return;}
-  if(failure || (!ideas&&!storyboard&&!sceneResult)) {await finish(c,job,"FAILED",failure,session);return;}
+  if(failure || (!ideas&&!storyboard&&!sceneResult&&!compileResult)) {await finish(c,job,"FAILED",failure,session);return;}
   const stale=p.revision!==job.baseRevision;
-  const content=sceneResult?{kind:"SCENE" as const,payload:{storyboard:sceneResult}}:storyboard?{kind:"STORYBOARD" as const,payload:{storyboard:proposedStoryboard(storyboard,job,proposalId,p.nextStoryboardVersion)}}:{kind:"IDEAS" as const,payload:{ideas:ideas!}};
+  const content=compileResult?{kind:"COMPILE" as const,payload:{storyboard:compileResult}}:sceneResult?{kind:"SCENE" as const,payload:{storyboard:sceneResult}}:storyboard?{kind:"STORYBOARD" as const,payload:{storyboard:proposedStoryboard(storyboard,job,proposalId,p.nextStoryboardVersion)}}:{kind:"IDEAS" as const,payload:{ideas:ideas!}};
+  if(compileResult&&!stale){
+   const snapshot=snapshotFromProposal({_id:proposalId,ownerId:job.ownerId,projectId:job.projectId,baseRevision:job.baseRevision,sourceJobId:id,payload:{storyboard:compileResult}} as import("./storyboard-model").CompileProposal,p.nextStoryboardVersion);snapshot.sourceProposalId=null;
+   await c.db.collection<Storyboard>("storyboards").insertOne(snapshot,{session});
+   const hash=snapshot.compileState==="VALID"?snapshotHash(compileResult,p.settings):null;
+   await c.db.collection<Project>("projects").updateOne({_id:p._id,resourceVersion:p.resourceVersion},{$set:{activeStoryboardId:snapshot._id,approval:null,currentSnapshotHash:hash,updatedAt:now},$inc:{revision:1,resourceVersion:1,nextStoryboardVersion:1,"publishFence.epoch":1}},{session});
+   await c.db.collection("auditEvents").insertOne({_id:uuid7(),schemaVersion:1,createdAt:now,ownerId:job.ownerId,actorType:"USER",actorId:job.ownerId,action:"STORYBOARD_COMPILED",aggregateType:"PROJECT",aggregateId:p._id,requestId:id,jobId:id,details:{storyboardId:snapshot._id,snapshotHash:hash},expiresAt:new Date(now.getTime()+90*86400000)} as Document,{session});
+   await finish(c,job,"SUCCEEDED",null,session);return;
+  }
   await c.db.collection<PlanningProposal>("proposals").insertOne({_id:proposalId,schemaVersion:1,ownerId:job.ownerId,projectId:job.projectId,createdAt:now,updatedAt:now,version:1,...content,baseRevision:job.baseRevision,targetSceneId:sceneResult?claimed.input!.sceneContext!.sceneId:null,state:stale?"CONFLICTED":"PENDING",payloadHash:digest(content.payload),sourceJobId:id,appliedStoryboardId:null,appliedAt:null} as PlanningProposal,{session});
   await finish(c,job,stale?"SUPERSEDED":"SUCCEEDED",null,session,[proposalId]);
  });

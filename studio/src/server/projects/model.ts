@@ -32,17 +32,17 @@ export type Project = {
   _id: string; schemaVersion: 1; ownerId: string; createdAt: Date; updatedAt: Date; revision: number; resourceVersion: number;
   title: string; titleSort: string; originalIdea: string; audience: string | null; niche: string | null; refinedIdea: string | null;
   settings: { voiceKey: "INDIAN_MALE" | "INDIAN_FEMALE" | null; captionStyle: "CLEAN"; musicAssetId: null; targetDurationSeconds: number };
-  nextStoryboardVersion: number; activeStoryboardId: string | null; currentSnapshotHash: null; approval: null; latestRenderId: null; currentRenderId: null; activeJobId: string | null;
+  nextStoryboardVersion: number; activeStoryboardId: string | null; currentSnapshotHash: string|null; approval: {storyboardId:string;snapshotHash:string;approvedBy:string;approvedAt:Date}|null; latestRenderId: null; currentRenderId: null; activeJobId: string | null;
   socialCaptionDraft: null; warnings: { code: "PLAN_CHANGED"; message: string; sceneId: null; severity: "WARNING" }[]; lifecycle: "ACTIVE" | "DELETING" | "DELETED"; deletedAt: Date | null; deletionId: string | null;
   publishFence: { epoch: number; blocked: boolean; activeIntentId: null; reason: string | null };
-  statusProjection: { creationStatus: "DRAFT" | "PLANNING" | "NEEDS_ATTENTION" | "STORYBOARD_REVIEW"; publicationStatus: "NOT_PUBLISHED"; stale: false; computedAt: Date };
+  statusProjection: { creationStatus: "DRAFT" | "PLANNING" | "NEEDS_ATTENTION" | "STORYBOARD_REVIEW"|"STORYBOARD_APPROVED"; publicationStatus: "NOT_PUBLISHED"; stale: false; computedAt: Date };
 };
 export function projectDTO(project: Project, activeJob: ReturnType<typeof jobDTO> | null = null) {
   return { id: project._id, title: project.title, revision: project.revision, resourceVersion: project.resourceVersion,
     creationStatus: project.statusProjection.creationStatus, publicationStatus: "NOT_PUBLISHED" as const, stale: false, durationSeconds: null, thumbnailAvailable: false,
     createdAt: project.createdAt.toISOString(), updatedAt: project.updatedAt.toISOString(), allowedActions: ["OPEN", "EDIT_PLAN", "DELETE"], originalIdea: project.originalIdea,
     refinedIdea: project.refinedIdea, audience: project.audience, niche: project.niche, activeStoryboardId: project.activeStoryboardId, storyboardVersion: project.activeStoryboardId ? project.nextStoryboardVersion - 1 : null,
-    settings: project.settings, currentSnapshotHash: null, approval: null, activeJob, latestRender: null, warnings: project.warnings };
+    settings: project.settings, currentSnapshotHash: project.currentSnapshotHash, approval: project.approval?{storyboardId:project.approval.storyboardId,snapshotHash:project.approval.snapshotHash,approvedAt:project.approval.approvedAt.toISOString()}:null, activeJob, latestRender: null, warnings: project.warnings };
 }
 export type ProjectDTO = ReturnType<typeof projectDTO>;
 

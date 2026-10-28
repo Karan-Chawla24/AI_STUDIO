@@ -1,3 +1,4 @@
+import {compileShape} from "./compile-shapes";
 import { sceneShape } from "./scene-shapes";
 import { storyboardShape } from "./storyboard-shapes";
 import { ideasShape } from "./ideas-shapes";
@@ -17,7 +18,7 @@ const checksum = createHash("sha256").update(JSON.stringify(extensions)).digest(
 async function verifyShape(db: Db) {
   for (const [name, validator] of Object.entries(extensions)) {
     const info = await db.listCollections({ name }, { nameOnly: false }).next();
-    if ((!isDeepStrictEqual(info?.options?.validator, validator) && !isDeepStrictEqual(info?.options?.validator, ideasShape(name, validator)) && !isDeepStrictEqual(info?.options?.validator, storyboardShape(name, ideasShape(name, validator))) && !isDeepStrictEqual(info?.options?.validator,sceneShape(name,storyboardShape(name, ideasShape(name, validator))))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("PLAN_SCHEMA_DRIFT", "Plan schema requires migration or repair.");
+    if ((!isDeepStrictEqual(info?.options?.validator, validator) && !isDeepStrictEqual(info?.options?.validator, ideasShape(name, validator)) && !isDeepStrictEqual(info?.options?.validator, storyboardShape(name, ideasShape(name, validator))) && !isDeepStrictEqual(info?.options?.validator,sceneShape(name,storyboardShape(name, ideasShape(name, validator)))) && !isDeepStrictEqual(info?.options?.validator,compileShape(name,sceneShape(name,storyboardShape(name, ideasShape(name, validator)))))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("PLAN_SCHEMA_DRIFT", "Plan schema requires migration or repair.");
   }
 }
 export async function verifyPlan(db: Db) {

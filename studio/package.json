@@ -50,7 +50,11 @@
     "scene:verify": "node --conditions=react-server --import tsx scripts/storyboard-db.ts verify",
     "test:scenes-browser": "node --conditions=react-server --import tsx tests/scenes.browser.ts",
     "test:scenes": "node --conditions=react-server --import tsx --test tests/scenes.test.ts",
-    "test:plan-refresh-browser": "node --conditions=react-server --import tsx tests/plan-refresh.browser.ts"
+    "test:plan-refresh-browser": "node --conditions=react-server --import tsx tests/plan-refresh.browser.ts",
+    "compile:migrate": "node --conditions=react-server --import tsx scripts/storyboard-db.ts migrate",
+    "compile:verify": "node --conditions=react-server --import tsx scripts/storyboard-db.ts verify",
+    "test:compilation": "node --conditions=react-server --import tsx --test tests/compilation.test.ts",
+    "test:compilation-browser": "node --conditions=react-server --import tsx tests/compilation.browser.ts"
   },
   "dependencies": {
     "@better-auth/mongo-adapter": "1.7.12",

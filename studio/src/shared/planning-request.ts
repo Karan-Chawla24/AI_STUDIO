@@ -1,5 +1,5 @@
 // Retrying a command is safe only with the exact original key, path and body.
-export type PlanningCommand = { path: string; body: object; key: string; method?: "POST"|"PATCH" };
+export type PlanningCommand = { path: string; body: object; key: string; method?: "POST"|"PATCH"|"DELETE" };
 export async function sendPlanningCommand(operation: PlanningCommand, token: string, onRecover: () => void, fetcher: typeof fetch = fetch) {
   const body = JSON.stringify(operation.body);
   for (let attempt = 0; attempt < 2; attempt++) {

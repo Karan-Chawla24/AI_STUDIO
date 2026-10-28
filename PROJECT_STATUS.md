@@ -6,7 +6,7 @@ This is the source of truth for implementation progress. The PRD defines product
 
 ## Current milestone
 
-**F11 — Scene editing and regeneration are ready for owner testing.** Atlas migration/verification, browser acceptance, live Gemini check, TypeScript/lint and production build passed. The preview and planning/deletion workers are running. Stop for owner testing before F12.
+**F12 — Compilation and storyboard approval are ready for owner testing.** Atlas migration/verification, browser acceptance, live Gemini compilation, TypeScript/lint and production build passed. Preview: http://localhost:3001. Stop for owner testing before F13.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -26,8 +26,8 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Complete; owner authorized progression |
 | F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Complete; owner approved and authorized progression |
 | F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Complete; owner authorized progression |
-| F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Complete and activated; awaiting owner testing |
-| F12 | Compilation and storyboard approval | Approval waits for saves/compilation; relevant edits invalidate approval | Planned |
+| F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Complete; owner authorized F12 |
+| F12 | Compilation and storyboard approval | Approval waits for saves/compilation; relevant edits invalidate approval | Complete and activated; awaiting owner testing |
 | F13 | Voice, captions and music settings | Two validated voices, required captions and optional licensed music | Planned |
 | F14 | Durable job/outbox infrastructure | Idempotency, leases, retries, cancellation and reconciliation tested | Planned |
 | F15 | Narration and timing | Per-scene audio, alignment and measured-duration repair work | Planned |
@@ -42,6 +42,15 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-28 — F12 compilation and storyboard approval
+
+- Owner authorized F12. Added durable explicit compilation, trusted static layout previews for all four scene types, semantic reveal anchors, bounded speech normalization/overrides and per-scene validation feedback. Compiled versions are immutable; concurrent edits preserve the newer storyboard and retain a conflicted compilation result. No audio/video generation is claimed.
+- Added voice-preset selection required for approval, exact server hash/storyboard approval, revocation, persisted approval after reload and invalidation after scene/voice changes. Unsaved editor work blocks approval controls. Plan-only edits preserve the accepted storyboard and its existing warning; F13's broader voice, caption and music controls remain unimplemented.
+- Added F12_0001_compilation_approval with strict forward validators and unchanged previous checksums/indexes. Extended job/proposal listing, deletion, idempotency methods, audit records and the shared worker. The F11 source-index recovery regressions still pass.
+- Validation: 57 affected regression tests passed, followed by all eight final F12 integration tests after adding a normalization-overflow regression. TypeScript, ESLint and production build passed. Browser acceptance passed compilation, six layout previews, voice selection, approval/reload/revocation, scene-edit invalidation, 390/320px layouts and zero page errors. Mobile preview images were visually reviewed.
+- One real Gemini 3.8 Flash compilation succeeded with a VALID six-scene result in a disposable database. Owner drafts were untouched. Evidence and scope: [F12 guide](docs/implementation/F12_Compilation_Approval.md), [browser report](docs/implementation/F12-browser-verification.json), [live report](docs/implementation/F12-live-verification.json).
+- Atlas F12 migration and full verification passed. Restarted the production preview (PID 39484), planning worker (PID 12020) and deletion worker (PID 33928). Sign-in returns 200; anonymous project access returns 401. Stop for owner testing before F13.
 
 ### 2026-10-28 — F11 source-index migration recovery
 
@@ -291,6 +300,6 @@ Development dependency follow-up: `braces` latest published version checked was 
 ## Known limits and next step
 
 - This is an early-access local test, not a production release; email delivery, role separation and deployment hardening remain outstanding.
-- No secrets are copied from the POC. No external paid services are called.
+- The configured Gemini model is used for explicitly requested planning and compilation. Credentials remain in ignored local environment files; voice synthesis/rendering are not integrated yet.
 - Voice rights, licensed music, Meta permissions and deployment region remain launch decisions.
-- Next action: owner tests F05 by creating a draft and reopening its saved URL. After approval, implement F06 project library/dashboard. Real email delivery/domain verification and operational hardening remain release requirements.
+- Next action: owner tests F12 using the compilation/approval checklist above. After approval, implement F13 voice, caption and music settings. Real email delivery/domain verification and operational hardening remain release requirements.

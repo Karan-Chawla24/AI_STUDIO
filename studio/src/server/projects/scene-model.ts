@@ -17,6 +17,7 @@ export function patchScene(scene:Scene,patch:Record<string,unknown>):Scene {
  const narration=patch.narration===undefined?scene.narration:boundedText(patch.narration,1200);
  const mode=patch.speechMode===undefined?scene.speechMode:patch.speechMode;
  if(!["AUTO","OVERRIDE"].includes(String(mode))||(mode==="AUTO"&&patch.speechText!==undefined)||(mode==="OVERRIDE"&&patch.speechText===undefined&&(scene.speechMode!=="OVERRIDE"||narration!==scene.narration)))throw new ProjectError("VALIDATION_FAILED","Automatic speech cannot have an override. Provide speech text when entering override mode or changing overridden narration.",422);
+ if(Object.keys(patch).filter(k=>editableSceneFields.includes(k)).every(k=>JSON.stringify(patch[k])===JSON.stringify(scene[k as keyof Scene])))return scene;
  const speechText=mode==="AUTO"?narration.replace(/\s+/g," "):patch.speechText===undefined?scene.speechText:boundedText(patch.speechText,1200);
  const raw={narration,visualDescription:patch.visualDescription===undefined?scene.visualDescription:patch.visualDescription,motionDescription:patch.motionDescription===undefined?scene.motionDescription:patch.motionDescription,sceneType:patch.sceneType===undefined?scene.sceneType:patch.sceneType,captionHighlights:patch.captionHighlights===undefined?scene.captionHighlights:patch.captionHighlights};
  let normalized:Scene;try{normalized=validateStoryboard({title:"Scene",hook:"Scene",scenes:Array.from({length:6},()=>raw)}).scenes[0];}catch{throw new ProjectError("VALIDATION_FAILED","Check scene text, supported visual type and highlights (each must appear in narration).",422);}
@@ -34,7 +35,7 @@ export function regeneratedStoryboard(value:unknown,job:IdeaJob):StoryboardDTO {
  const {compiledPreview,...before}=base.scenes.find(s=>s.sceneId===context.sceneId)!;void compiledPreview;
  let updated:Scene;try{updated=patchScene({...before,compiled:null}, {...value,...(context.scope!=="VISUALS"?{speechMode:"AUTO"}:{})});}catch{throw new ProjectError("INVALID_PROVIDER_OUTPUT","The scene response did not meet requirements.",502);}
  const {compiled,...updatedDTO}=updated;void compiled;
- const scenes=base.scenes.map(s=>s.sceneId===context.sceneId?{...updatedDTO,compiledPreview:null}:s);
+ const scenes=base.scenes.map(s=>s.sceneId===context.sceneId?{...updatedDTO,compiledPreview:null}:{...s,compiledPreview:null,validationErrors:[]});
  if(scenes.reduce((n,s)=>n+[...s.narration].length,0)>12000)throw new ProjectError("INVALID_PROVIDER_OUTPUT","The total narration is too long.",502);
- return {...base,id:uuid7(),createdAt:new Date().toISOString(),baseRevision:job.baseRevision,scenes,contentHash:storyboardHash({...base,scenes:scenes.map(({compiledPreview,...s})=>{void compiledPreview;return {...s,compiled:null};})})};
+ return {...base,id:uuid7(),createdAt:new Date().toISOString(),baseRevision:job.baseRevision,compileState:"NEEDS_COMPILATION",warnings:[],scenes,contentHash:storyboardHash({...base,scenes:scenes.map(({compiledPreview,...s})=>{void compiledPreview;return {...s,compiled:null};})})};
 }

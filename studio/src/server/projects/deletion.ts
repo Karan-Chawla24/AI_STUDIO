@@ -49,7 +49,7 @@ export async function deleteProject(connection: DatabaseConnection, ownerId: str
       // Fail closed when future features introduce resources this draft-only worker cannot clean.
       if (project.latestRenderId || project.currentRenderId || project.publishFence.activeIntentId) throw new ProjectError("DELETION_UNAVAILABLE", "This project needs additional cleanup support before deletion.", 409);
       if (project.activeJobId) {
-        const planning = await db.collection("generationJobs").findOne({ _id: project.activeJobId as never, ownerId, projectId, kind: { $in: ["IDEA_BRAINSTORM", "IDEA_REFINE", "STORYBOARD_GENERATE", "SCENE_REGENERATE"] } }, { session });
+        const planning = await db.collection("generationJobs").findOne({ _id: project.activeJobId as never, ownerId, projectId, kind: { $in: ["IDEA_BRAINSTORM", "IDEA_REFINE", "STORYBOARD_GENERATE", "SCENE_REGENERATE","STORYBOARD_COMPILE"] } }, { session });
         if (!planning) throw new ProjectError("DELETION_UNAVAILABLE", "Unknown active work requires cleanup support.", 409);
         await db.collection("generationJobs").updateMany({ ownerId, projectId, active: true }, { $set: { active: false, state: "CANCELLED", stage: "FINISHED", cancelRequested: true, finishedAt: now, updatedAt: now, "lease.expiresAt": null }, $inc: { resourceVersion: 1 } }, { session });
         await db.collection("providerCalls").updateMany({ ownerId, projectId, state: "SENT" }, { $set: { state: "OUTCOME_UNKNOWN", updatedAt: now } }, { session });
