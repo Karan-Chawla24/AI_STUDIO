@@ -1,3 +1,5 @@
+import {migrateCompilation} from "../src/server/projects/compile-schema";
+import {creationStatuses} from "../src/shared/project-library";
 import assert from "node:assert/strict";
 import { before, after, test } from "node:test";
 import { randomUUID } from "node:crypto";
@@ -84,4 +86,15 @@ test("HTTP lists require identity, return envelopes and private no-store respons
   assert.equal((await projectRequest(req, { ...deps, identity: null })).status, 401);
   const response = await projectRequest(req, deps); assert.equal(response.status, 200); assert.equal(response.headers.get("cache-control"), "private, no-store"); assert.equal(response.headers.get("vary"), "Cookie"); assert.ok((await response.json()).requestId);
   assert.equal((await projectRequest(new Request(config.origin + "/api/v1/dashboard?q=x"), deps)).status, 400);
+});
+
+test("approved storyboard status is selectable and filters the authenticated library through HTTP",async()=>{
+ await migrateCompilation(connection.db);
+ assert.ok(creationStatuses.includes("STORYBOARD_APPROVED"));
+ const approvedId=rows[0]._id;
+ await connection.db.collection<Project>("projects").updateMany({$or:[{_id:approvedId},{ownerId:other},{lifecycle:"DELETED"}]},{$set:{"statusProjection.creationStatus":"STORYBOARD_APPROVED"}});
+ const filtered=await listProjects(connection,owner,query({creationStatus:"STORYBOARD_APPROVED"}),keys);assert.deepEqual(filtered.items.map(p=>p.id),[approvedId]);
+ const config={origin:"http://localhost:3001",secret:keys.current,secure:false};
+ const response=await projectRequest(new Request(config.origin+"/api/v1/projects?creationStatus=STORYBOARD_APPROVED"),{connection,config,identity:{user,profile,sessionId:"library-session"}});
+ assert.equal(response.status,200);const body=await response.json();assert.deepEqual(body.data.items.map((p:{id:string})=>p.id),[approvedId]);assert.equal(body.data.items[0].creationStatus,"STORYBOARD_APPROVED");
 });

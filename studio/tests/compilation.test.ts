@@ -72,3 +72,14 @@ test('compiler rejects unsafe layouts, normalizes speech, maps all four template
 test('normalization overflow is actionable invalid feedback, not a database write failure',async()=>{
  const {id,story}=await ready();await editStoryboard(c,owner,id,story.scenes[0].sceneId,{expectedRevision:2,narration:'API '.repeat(290).trim(),captionHighlights:[]},randomUUID(),randomUUID());const p=await compile(id,3),row=await c.db.collection<Storyboard>('storyboards').findOne({_id:p.activeStoryboardId!});assert.equal(row?.compileState,'INVALID');assert.equal(row?.scenes[0].validationErrors[0].code,'LAYOUT_INVALID');assert.ok(row!.scenes[0].speechText.length<=1200);
 });
+
+test('canonical no-op edits preserve compiled speech, layout, approval and revisions',async()=>{
+ const {id,story}=await ready();const sceneId=story.scenes[0].sceneId;
+ await editStoryboard(c,owner,id,sceneId,{expectedRevision:2,narration:'An API serves a café.',captionHighlights:['API','café']},randomUUID(),randomUUID());
+ let p=await compile(id,3);await voice(id,p.revision);p=await readProject(c,owner,id);await approve(p);const before=await readProject(c,owner,id);
+ const snapshot=(await c.db.collection<Storyboard>('storyboards').findOne({_id:before.activeStoryboardId!}))!,scene=snapshot.scenes[0];assert.equal(scene.speechText,'An A P I serves a café.');assert.ok(scene.compiled);
+ const variants=[{narration:'  An API serves a cafe\u0301.  '},{visualDescription:' '+scene.visualDescription+' '},{motionDescription:'\n'+scene.motionDescription+'\n'},{captionHighlights:[' API ',' cafe\u0301 ']},{speechMode:'AUTO',narration:' '+scene.narration+' ',visualDescription:' '+scene.visualDescription+' ',motionDescription:' '+scene.motionDescription+' ',captionHighlights:[' API ',' cafe\u0301 '],sceneType:scene.sceneType}];
+ for(const patch of variants){await editStoryboard(c,owner,id,sceneId,{expectedRevision:before.revision,...patch},randomUUID(),randomUUID());assert.deepEqual(await readProject(c,owner,id),before);assert.deepEqual(await c.db.collection<Storyboard>('storyboards').findOne({_id:before.activeStoryboardId!}),snapshot);}
+ assert.equal(await c.db.collection('storyboards').countDocuments({projectId:id}),3);
+ await editStoryboard(c,owner,id,sceneId,{expectedRevision:before.revision,narration:'An API serves a different café.'},randomUUID(),randomUUID());const changed=await readProject(c,owner,id);assert.equal(changed.revision,before.revision+1);assert.equal(changed.approval,null);assert.equal(changed.currentSnapshotHash,null);
+});

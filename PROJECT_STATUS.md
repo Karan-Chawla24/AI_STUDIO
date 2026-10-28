@@ -43,6 +43,12 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Change log
 
+### 2026-10-28 — F12 review fixes: canonical saves and approved filtering
+
+- Scene edits now normalize and validate editable text/highlights before comparing with saved content. Canonical no-op edits preserve compiled layouts, normalized AUTO speech (including API → A P I), hashes, approval, timestamps and project/storyboard revisions. Actual content changes still invalidate compilation and approval; normalized custom-speech no-ops are also preserved.
+- Added STORYBOARD_APPROVED to the shared creation-status list used by the library dropdown and API query validation. An HTTP regression checks that the filter returns approved projects belonging to the signed-in owner and excludes foreign/deleted projects.
+- All 28 targeted compilation, scene and library tests passed, including whitespace/Unicode-equivalent edits on an approved compiled snapshot and actual-edit invalidation. TypeScript, ESLint and production build passed. No schema migration or paid provider request was needed. Production preview restarted (PID 740) and planning worker ready (PID 38504). Sign-in returns 200; anonymous project filtering returns 401. F13 remains gated on owner testing.
+
 ### 2026-10-28 — F12 compilation and storyboard approval
 
 - Owner authorized F12. Added durable explicit compilation, trusted static layout previews for all four scene types, semantic reveal anchors, bounded speech normalization/overrides and per-scene validation feedback. Compiled versions are immutable; concurrent edits preserve the newer storyboard and retain a conflicted compilation result. No audio/video generation is claimed.

@@ -17,10 +17,12 @@ export function patchScene(scene:Scene,patch:Record<string,unknown>):Scene {
  const narration=patch.narration===undefined?scene.narration:boundedText(patch.narration,1200);
  const mode=patch.speechMode===undefined?scene.speechMode:patch.speechMode;
  if(!["AUTO","OVERRIDE"].includes(String(mode))||(mode==="AUTO"&&patch.speechText!==undefined)||(mode==="OVERRIDE"&&patch.speechText===undefined&&(scene.speechMode!=="OVERRIDE"||narration!==scene.narration)))throw new ProjectError("VALIDATION_FAILED","Automatic speech cannot have an override. Provide speech text when entering override mode or changing overridden narration.",422);
- if(Object.keys(patch).filter(k=>editableSceneFields.includes(k)).every(k=>JSON.stringify(patch[k])===JSON.stringify(scene[k as keyof Scene])))return scene;
  const speechText=mode==="AUTO"?narration.replace(/\s+/g," "):patch.speechText===undefined?scene.speechText:boundedText(patch.speechText,1200);
  const raw={narration,visualDescription:patch.visualDescription===undefined?scene.visualDescription:patch.visualDescription,motionDescription:patch.motionDescription===undefined?scene.motionDescription:patch.motionDescription,sceneType:patch.sceneType===undefined?scene.sceneType:patch.sceneType,captionHighlights:patch.captionHighlights===undefined?scene.captionHighlights:patch.captionHighlights};
  let normalized:Scene;try{normalized=validateStoryboard({title:"Scene",hook:"Scene",scenes:Array.from({length:6},()=>raw)}).scenes[0];}catch{throw new ProjectError("VALIDATION_FAILED","Check scene text, supported visual type and highlights (each must appear in narration).",422);}
+ // Compare canonical editable content before replacing derived speech or compiled data.
+ const contentFields=["narration","visualDescription","motionDescription","sceneType","captionHighlights"] as const;
+ if(mode===scene.speechMode&&contentFields.every(k=>JSON.stringify(normalized[k])===JSON.stringify(scene[k]))&&(mode==="AUTO"||speechText===scene.speechText))return scene;
  return {...normalized,sceneId:scene.sceneId,order:scene.order,speechMode:mode as Scene["speechMode"],speechText,estimatedDurationSeconds:Math.max(1,Math.round(speechText.split(/\s+/).length/2.5*10)/10)};
 }
 export function regenerateInput(value:unknown,sceneId:string):RegenerateInput {

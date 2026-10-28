@@ -45,7 +45,7 @@ test('speech override rules and invalid field/highlight checks',async()=>{
  await assert.rejects(editStoryboard(c,owner,id,scene.sceneId,{expectedRevision:2,speechText:'No auto override'},randomUUID(),randomUUID()),{code:'VALIDATION_FAILED'});
  await assert.rejects(editStoryboard(c,owner,id,scene.sceneId,{expectedRevision:2,order:5},randomUUID(),randomUUID()),{code:'VALIDATION_FAILED'});
  const row=(await c.db.collection<Storyboard>('storyboards').findOne({_id:story.id}))!;
- const override=patchScene(row.scenes[0],{speechMode:'OVERRIDE',speechText:'Custom pronunciation.'});assert.equal(override.speechText,'Custom pronunciation.');
+ const override=patchScene(row.scenes[0],{speechMode:'OVERRIDE',speechText:'Custom pronunciation.'});assert.equal(override.speechText,'Custom pronunciation.');assert.deepEqual(patchScene(override,{speechText:'  Custom pronunciation.  '}),override);
  assert.throws(()=>patchScene(override,{narration:'Changed words.',captionHighlights:[]}),{code:'VALIDATION_FAILED'});
  assert.equal(patchScene(override,{visualDescription:'Updated diagram'}).speechText,override.speechText);
  assert.equal(patchScene(override,{speechMode:'AUTO'}).speechText,override.narration.replace(/\s+/g,' '));
