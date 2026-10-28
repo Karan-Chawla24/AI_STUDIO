@@ -1,6 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { getDatabase, closeDatabase, assertTransactionSupport } from "../src/server/db/client";
-import { migrateStoryboards, verifyStoryboards } from "../src/server/projects/storyboard-schema";
+import { migrateScenes as migrateStoryboards, verifyScenes as verifyStoryboards } from "../src/server/projects/scene-schema";
 import { drainIdeas } from "../src/server/projects/ideas";
 import { ideaConfig } from "../src/server/projects/ideas-provider";
 import { DatabaseError } from "../src/server/db/config";

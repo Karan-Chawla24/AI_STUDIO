@@ -262,3 +262,12 @@ nav { display: grid; gap: 6px; margin-top: 48px; }
 .storyboard-empty { margin-top: 1.5rem; padding: 1.5rem; border: 1px dashed var(--control-border); border-radius: 1rem; }
 .storyboard-panel .plan-actions { flex-wrap: wrap; gap: .75rem; }
 @media(max-width:650px) { .storyboard-scene-grid { grid-template-columns: 1fr; gap: .5rem; } .storyboard-scene { padding: 1rem; } }
+.scene-editor { padding: 24px; margin: 24px 0; border: 1px solid var(--line, #d4ded9); border-radius: 18px; background: #f4f7f4; }
+.scene-editor label { display: grid; gap: 8px; margin: 14px 0; font-weight: 600; }
+.scene-editor textarea, .scene-editor select { width: 100%; min-width: 0; padding: 12px; border: 1px solid #92aaa3; border-radius: 10px; background: #fffefa; color: #172b29; font: inherit; }
+.scene-editor .plan-actions { align-items: end; }
+.scene-editor fieldset { min-width: 0; }
+.scene-regenerate { margin-top: 24px; border-top: 1px solid #d4ded9; padding-top: 12px; }
+.scene-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.scene-compare > div, .scene-comparison { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 700px) { .scene-compare { grid-template-columns: 1fr; } .scene-editor { padding: 16px; } }

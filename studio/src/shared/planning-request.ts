@@ -1,11 +1,11 @@
 // Retrying a command is safe only with the exact original key, path and body.
-export type PlanningCommand = { path: string; body: object; key: string };
+export type PlanningCommand = { path: string; body: object; key: string; method?: "POST"|"PATCH" };
 export async function sendPlanningCommand(operation: PlanningCommand, token: string, onRecover: () => void, fetcher: typeof fetch = fetch) {
   const body = JSON.stringify(operation.body);
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const response = await fetcher(operation.path, {
-        method: "POST", signal: AbortSignal.timeout(15000),
+        method: operation.method??"POST", signal: AbortSignal.timeout(15000),
         headers: { "Content-Type": "application/json", "X-CSRF-Token": token, "Idempotency-Key": operation.key }, body,
       });
       return { response, body: await response.json() };

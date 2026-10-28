@@ -1,3 +1,5 @@
+import {editStoryboard} from "./scene-service";
+import {regenerateInput} from "./scene-model";
 import { storyboardInput, storyboardDTO, type Storyboard, type PlanningProposal } from "./storyboard-model";
 import "server-only";
 import { createHmac, timingSafeEqual, randomUUID } from "node:crypto";
@@ -14,7 +16,7 @@ import { cursorKeys } from "./library";
 export async function ideaList(c:DatabaseConnection,owner:string,projectId:string,kind:"jobs"|"proposals"|"storyboards",params:URLSearchParams,secret:string) {
  await readProject(c,owner,projectId);
  const states=kind==="jobs"?["QUEUED","RUNNING","SUCCEEDED","FAILED","CANCELLED","SUPERSEDED","REQUIRES_ATTENTION"]:["PENDING","APPLIED","DISMISSED","CONFLICTED"];
- const kinds=kind==="jobs"?["IDEA_BRAINSTORM","IDEA_REFINE","STORYBOARD_GENERATE"]:["IDEAS","STORYBOARD"];
+ const kinds=kind==="jobs"?["IDEA_BRAINSTORM","IDEA_REFINE","STORYBOARD_GENERATE","SCENE_REGENERATE"]:["IDEAS","STORYBOARD","SCENE"];
  const invalid=():never=>{throw new ProjectError("INVALID_QUERY","Check the list filters or refresh the list.",400);};
  for(const k of params.keys()) if(!(kind==="storyboards"?["limit","cursor"]:["limit","cursor","state","kind"]).includes(k)||params.getAll(k).length!==1)invalid();
  const limit=params.get("limit")??"20",state=params.get("state"),type=params.get("kind");
@@ -46,11 +48,13 @@ export async function ideasRequest(request:Request,projectId:string,parts:string
    const tag=`"${section}-${row._id}-${section==="jobs"?(row as IdeaJob).resourceVersion:(row as PlanningProposal).version}"`;headers.set("ETag",tag);headers.set("Cache-Control","private, no-cache");if(request.headers.get("if-none-match")===tag)return new Response(null,{status:304,headers});
    return Response.json({data:section==="jobs"?jobDTO(row as IdeaJob):section==="storyboards"?storyboardDTO(row as Storyboard):proposalDTO(row as PlanningProposal),requestId},{headers});
   }
-  if(request.method!=="POST"||url.search)throw new ProjectError("METHOD_NOT_ALLOWED","This action is unavailable.",405);
+  if(!["POST","PATCH"].includes(request.method)||url.search)throw new ProjectError("METHOD_NOT_ALLOWED","This action is unavailable.",405);
   if(request.headers.get("origin")!==config.origin||request.headers.get("sec-fetch-site")==="cross-site"||!validCsrf(request.headers.get("x-csrf-token"),identity,config.secret))throw new ProjectError("CSRF_FAILED","Refresh your session and try again.",403);
   const key=request.headers.get("idempotency-key");if(!key)throw new ProjectError("PRECONDITION_REQUIRED","An Idempotency-Key is required.",428);if(!/^[\x20-\x7e]{16,128}$/.test(key))throw new ProjectError("VALIDATION_FAILED","Use a valid retry key.",422);
   const body=await strictJSON(request);let result;
-  if(section==="ideas"&&parts.length===2&&["brainstorm","refine"].includes(id))result=await admitIdeas(c,owner,projectId,id==="refine"?"IDEA_REFINE":"IDEA_BRAINSTORM",ideaInput(body,id==="refine"),key,identity.user.emailVerified);
+  if(request.method==="PATCH"){if(!((section==="storyboard"&&parts.length===1)||(section==="scenes"&&parts.length===2)))throw new ProjectError("METHOD_NOT_ALLOWED","This action is unavailable.",405);result=await editStoryboard(c,owner,projectId,section==="scenes"?id:null,body,key,requestId);}
+  else if(section==="scenes"&&parts.length===3&&action==="regenerate")result=await admitIdeas(c,owner,projectId,"SCENE_REGENERATE",regenerateInput(body,id),key,identity.user.emailVerified);
+  else if(section==="ideas"&&parts.length===2&&["brainstorm","refine"].includes(id))result=await admitIdeas(c,owner,projectId,id==="refine"?"IDEA_REFINE":"IDEA_BRAINSTORM",ideaInput(body,id==="refine"),key,identity.user.emailVerified);
   else if(section==="storyboards"&&parts.length===2&&id==="generate")result=await admitIdeas(c,owner,projectId,"STORYBOARD_GENERATE",storyboardInput(body),key,identity.user.emailVerified);
   else {
    const d=body as {expectedVersion:number;expectedRevision?:number;selectedIdeaId?:string};const apply=section==="proposals"&&action==="apply";

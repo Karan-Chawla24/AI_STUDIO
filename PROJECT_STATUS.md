@@ -1,12 +1,12 @@
 # Project status — Educational Video Studio
 
-Last updated: 2026-10-27
+Last updated: 2026-10-28
 
 This is the source of truth for implementation progress. The PRD defines product scope; the API, database and system-design documents define the implementation contracts. Stitch boards are visual references, not proof that features work.
 
 ## Current milestone
 
-**F10 — Owner main-flow review passed; cancellation follow-up is ready for retest.** Owner confirmed generation, reload recovery, acceptance, plan-change warning, replacement, saved history and mobile review. Cancellation race recovery and outdated interface copy are fixed. Finish the cancellation retest before F11; remaining owner-untested paths are recorded below.
+**F11 — Scene editing and regeneration are ready for owner testing.** Atlas migration/verification, browser acceptance, live Gemini check, TypeScript/lint and production build passed. The preview and planning/deletion workers are running. Stop for owner testing before F12.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -25,8 +25,8 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F07 | Project deletion | Explicit confirmation; soft deletion and cleanup follow DB contract | Complete; owner authorized progression |
 | F08 | Plan editor and autosave | Saved draft survives reload; conflicts preserve local edits | Complete; owner authorized progression |
 | F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Complete; owner approved and authorized progression |
-| F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Complete and activated; awaiting owner testing |
-| F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Planned |
+| F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Complete; owner authorized progression |
+| F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Complete and activated; awaiting owner testing |
 | F12 | Compilation and storyboard approval | Approval waits for saves/compilation; relevant edits invalidate approval | Planned |
 | F13 | Voice, captions and music settings | Two validated voices, required captions and optional licensed music | Planned |
 | F14 | Durable job/outbox infrastructure | Idempotency, leases, retries, cancellation and reconciliation tested | Planned |
@@ -42,6 +42,16 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-28 — F11 scene editing and regeneration
+
+- Owner authorized F11. Added title/hook editing, per-scene narration/visual/motion/type/highlight edits, automatic or overridden speech text, explicit saves, retained conflict drafts and latest-version comparison. Saved edits create immutable versions with stable scene IDs; exact no-ops and retry receipts do not create extra versions. Scene editor state survives background snapshot changes.
+- Added scene regeneration for narration, visuals or both, using the existing Gemini configuration and durable planning queue. Current/proposed scene comparison requires explicit acceptance or dismissal. Non-target scenes and fields are preserved; regenerated narration resets speech to AUTO, while visual-only changes preserve overrides. Stale proposals cannot overwrite newer content. The shared quota, ownership, CSRF, verification, cancellation, deletion and uncertain-provider-outcome protections apply.
+- Added F11_0001_scene_editing without changing older migration checksums. It expands strict validators and changes the unique storyboard source index to a partial index for non-null proposal sources, allowing manual snapshots. Manual edits atomically update the snapshot pointer, revision/fence, audit and idempotency receipt. PATCH edit endpoints require Idempotency-Key for safe lost-response replay; see docs/implementation/F11_Scene_Editing.md.
+- Full 101-test regression passed before final UI refinements. The final affected run passed 39 tests, including nine F11 tests and provider-context sanitization (102 tests now exist across the suite). TypeScript, lint and production build passed. Chrome checks passed manual edits, delayed acknowledgement with one saved version, reload, speech override, conflict comparison, scoped regeneration/explicit acceptance and mobile 390/320px with no page errors. Browser testing found and fixed ambiguous textarea labels. Evidence: F11-browser-verification.json and F11-scene-editor-mobile.png.
+- One real Gemini 3.8 Flash VISUALS scene regeneration succeeded and produced a PENDING proposal in an isolated database; owner drafts were untouched. Provider subject data is limited to content context; IDs and credentials are excluded. See F11-live-verification.json. The earlier approval-review usage-limit interruption prevented the first live call from executing; resumed October 28 without duplicating a provider call.
+- Atlas F11 migration and full schema/index verification passed. Restarted the production preview at http://localhost:3001, planning worker and deletion worker; all reported ready. Sign-in returned 200 and anonymous project API access returned 401. F12 compilation/approval, actual voice generation and rendering remain unimplemented. Stop for owner testing before F12.
+
 
 ### 2026-10-27 — F10 stale refresh review fix
 

@@ -1,0 +1,15 @@
+{
+  "manualEdit": "passed",
+  "lostEditAcknowledgement": "same-key replay, one version",
+  "overridePersistence": "passed",
+  "conflictDraftPreserved": "passed",
+  "scopedRegenerationComparison": "passed",
+  "explicitAcceptance": "passed",
+  "mobileWidths": [
+    390,
+    320
+  ],
+  "pageErrors": [],
+  "provider": "injected deterministic provider",
+  "database": "isolated temporary replica set"
+}

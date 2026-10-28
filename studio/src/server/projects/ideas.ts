@@ -1,3 +1,6 @@
+import {requireSceneMigration} from "./scene-schema";
+import {regeneratedStoryboard,type RegenerateInput} from "./scene-model";
+import {generateScene} from "./scene-provider";
 import { generateStoryboard } from "./storyboard-provider";
 import { requireStoryboardMigration } from "./storyboard-schema";
 import { validateStoryboard, proposedStoryboard, snapshotFromProposal, storyboardDTO, type Storyboard, type PlanningProposal, type StoryboardInput } from "./storyboard-model";
@@ -13,8 +16,8 @@ import { ideaConfig, generateIdeas } from "./ideas-provider";
 import { validateIdeas, proposalDTO, jobDTO, type IdeaJob, type IdeaInput, } from "./ideas-model";
 export const digest = (v: unknown) => createHash("sha256").update(JSON.stringify(v)).digest("hex");
 type Receipt = Document & { _id: string; requestHash: string; responseBody: Document; responseStatus: number; expiresAt: Date | null };
-export async function ideaCommand(c: DatabaseConnection, owner: string, projectId: string, route: string, key: string, input: unknown, run: (p: Project, session: ClientSession) => Promise<{data: Document; status: number; operationId: string; pending?: boolean}>) {
- await requireIdeasMigration(c.db); const scope = {ownerId:owner,method:"POST",routeKey:route,keyHash:digest(key)}, hash = digest(input), receiptId=uuid7();
+export async function ideaCommand(c: DatabaseConnection, owner: string, projectId: string, route: string, key: string, input: unknown, run: (p: Project, session: ClientSession) => Promise<{data: Document; status: number; operationId: string; pending?: boolean}>, method="POST") {
+ await requireIdeasMigration(c.db); const scope = {ownerId:owner,method,routeKey:route,keyHash:digest(key)}, hash = digest(input), receiptId=uuid7();
  return inTransaction(c.client,async session => {
   if (!await c.db.collection<UserProfile>("userProfiles").findOneAndUpdate({_id:owner,lifecycle:"ACTIVE"},{$inc:{fenceVersion:1}},{session})) throw new ProjectError("ACCOUNT_DELETING","This account cannot change projects.",403);
   const p = await c.db.collection<Project>("projects").findOne({_id:projectId,ownerId:owner,lifecycle:"ACTIVE"},{session}); if (!p) throw missingProject();
@@ -26,17 +29,20 @@ export async function ideaCommand(c: DatabaseConnection, owner: string, projectI
   return {data:r.data,status:r.status,replayed:false};
  });
 }
-export async function admitIdeas(c:DatabaseConnection,owner:string,projectId:string,kind:IdeaJob["kind"],input:IdeaInput | StoryboardInput,key:string,verified:boolean,model?:string) {
+export async function admitIdeas(c:DatabaseConnection,owner:string,projectId:string,kind:IdeaJob["kind"],input:IdeaInput | StoryboardInput | RegenerateInput,key:string,verified:boolean,model?:string) {
  if(!verified) throw new ProjectError("EMAIL_NOT_VERIFIED","Verify your email before generating ideas.",403);
+ if(kind==="SCENE_REGENERATE")await requireSceneMigration(c.db);
  if(kind==="STORYBOARD_GENERATE")await requireStoryboardMigration(c.db);
- const jobId=uuid7(), now=new Date(), route=kind==="STORYBOARD_GENERATE"?`/api/v1/projects/${projectId}/storyboards/generate`:`/api/v1/projects/${projectId}/ideas/${kind === "IDEA_REFINE" ? "refine":"brainstorm"}`;
+ const jobId=uuid7(), now=new Date(), route=kind==="SCENE_REGENERATE"?`/api/v1/projects/${projectId}/scenes/${(input as RegenerateInput).sceneId}/regenerate`:kind==="STORYBOARD_GENERATE"?`/api/v1/projects/${projectId}/storyboards/generate`:`/api/v1/projects/${projectId}/ideas/${kind === "IDEA_REFINE" ? "refine":"brainstorm"}`;
  return ideaCommand(c,owner,projectId,route,key,input,async(p,session)=>{
   const configuredModel = model ?? ideaConfig().model;
   if(p.revision !== input.expectedRevision) throw new ProjectError("REVISION_CONFLICT","Your plan changed. Refresh it before generating.",409);
   if(kind==="STORYBOARD_GENERATE" && p.activeStoryboardId && (!("replaceExistingConfirmed" in input)||!input.replaceExistingConfirmed))throw new ProjectError("REPLACEMENT_CONFIRMATION_REQUIRED","Confirm replacement of the existing storyboard before generating a new one.",409);
   if(p.activeJobId) throw new ProjectError("PROJECT_BUSY","This project already has an active job. Review its status first.",409);
   if(await c.db.collection<IdeaJob>("generationJobs").countDocuments({ownerId:owner,createdAt:{$gt:new Date(Date.now()-3600000)}},{session}) >=20) throw new ProjectError("RATE_LIMITED","You have reached twenty planning requests this hour. Try later.",429);
-  const snapshot={title:p.title,idea:p.refinedIdea??p.originalIdea,audience:p.audience,niche:p.niche,duration:p.settings.targetDurationSeconds,count:"count" in input?input.count:8,guidance:input.guidance,model:configuredModel};
+  let sceneContext:NonNullable<IdeaJob["input"]>["sceneContext"];
+  if(kind==="SCENE_REGENERATE"){const d=input as RegenerateInput;const base=await c.db.collection<Storyboard>("storyboards").findOne({_id:p.activeStoryboardId??"",ownerId:owner,projectId},{session});if(!base||!base.scenes.some(s=>s.sceneId===d.sceneId))throw missingProject();sceneContext={storyboard:storyboardDTO(base),sceneId:d.sceneId,scope:d.scope};}
+  const snapshot={...(sceneContext?{sceneContext}:{}),title:p.title,idea:p.refinedIdea??p.originalIdea,audience:p.audience,niche:p.niche,duration:p.settings.targetDurationSeconds,count:"count" in input?input.count:8,guidance:input.guidance,model:configuredModel};
   const job:IdeaJob={_id:jobId,schemaVersion:1,ownerId:owner,projectId,createdAt:now,updatedAt:now,resourceVersion:1,kind,state:"QUEUED",active:true,stage:"QUEUED",baseRevision:p.revision,input:snapshot,inputHash:digest(snapshot),proposalIds:[],cancelRequested:false,lease:{holder:null,epoch:0,expiresAt:null},startedAt:null,finishedAt:null,error:null,unsafeToRetry:false};
   await c.db.collection<IdeaJob>("generationJobs").insertOne(job,{session});
   await c.db.collection<Project>("projects").updateOne({_id:projectId,resourceVersion:p.resourceVersion},{$set:{activeJobId:jobId,updatedAt:now,"statusProjection.creationStatus":"PLANNING","statusProjection.computedAt":now},$inc:{resourceVersion:1}},{session});
@@ -56,12 +62,13 @@ export async function decideProposal(c:DatabaseConnection,owner:string,projectId
    if(proposal.state !== "CONFLICTED") await collection.updateOne({_id:id},{$set:{state:"CONFLICTED",updatedAt:now},$inc:{version:1}},{session});
    return {data:{code:"PROPOSAL_STALE",message:"This suggestion belongs to an older plan. Generate a new one or copy the text into your plan.",currentRevision:p.revision},status:409,operationId:id};
   }
-  if(proposal.kind==="STORYBOARD") {
+  if(proposal.kind==="STORYBOARD"||proposal.kind==="SCENE") {
    if(input.selectedIdeaId!==undefined)throw new ProjectError("VALIDATION_FAILED","Do not select an idea when applying a storyboard.",422);
+   if(proposal.kind==="SCENE")await requireSceneMigration(c.db);
    await requireStoryboardMigration(c.db);
    const snapshot=snapshotFromProposal(proposal,p.nextStoryboardVersion);
    await c.db.collection<Storyboard>("storyboards").insertOne(snapshot,{session});
-   const saved=await c.db.collection<Project>("projects").findOneAndUpdate({_id:projectId,resourceVersion:p.resourceVersion,lifecycle:"ACTIVE"},{$set:{activeStoryboardId:snapshot._id,approval:null,currentSnapshotHash:null,warnings:[],updatedAt:now,"statusProjection.creationStatus":"STORYBOARD_REVIEW","statusProjection.computedAt":now},$inc:{revision:1,resourceVersion:1,nextStoryboardVersion:1,"publishFence.epoch":1}},{session,returnDocument:"after"});
+   const saved=await c.db.collection<Project>("projects").findOneAndUpdate({_id:projectId,resourceVersion:p.resourceVersion,lifecycle:"ACTIVE"},{$set:{activeStoryboardId:snapshot._id,approval:null,currentSnapshotHash:null,warnings:proposal.kind==="SCENE"?p.warnings:[],updatedAt:now,"statusProjection.creationStatus":"STORYBOARD_REVIEW","statusProjection.computedAt":now},$inc:{revision:1,resourceVersion:1,nextStoryboardVersion:1,"publishFence.epoch":1}},{session,returnDocument:"after"});
    if(!saved)throw new ProjectError("REVISION_CONFLICT","Refresh your project before continuing.",409);
    const updated=await collection.findOneAndUpdate({_id:id,version:input.expectedVersion},{$set:{state:"APPLIED",appliedAt:now,updatedAt:now,appliedStoryboardId:snapshot._id},$inc:{version:1}},{session,returnDocument:"after"});
    await c.db.collection("auditEvents").insertOne({_id:auditId,schemaVersion:1,createdAt:now,ownerId:owner,actorType:"USER",actorId:owner,action:"STORYBOARD_APPLIED",aggregateType:"PROJECT",aggregateId:projectId,requestId,jobId:null,details:{storyboardId:snapshot._id,proposalId:id,fromRevision:p.revision,toRevision:saved.revision},expiresAt:new Date(now.getTime()+90*86400000)} as Document,{session});
@@ -109,8 +116,9 @@ export async function runIdea(c:DatabaseConnection,id:string,provider?:typeof ge
   return updated;
  });
  if(!claimed?.input) return;
+ let sceneResult:ReturnType<typeof regeneratedStoryboard>|null=null;
  let ideas:ReturnType<typeof validateIdeas>|null=null, storyboard:ReturnType<typeof validateStoryboard>|null=null, failure:IdeaJob["error"]=null;
- try {const output=await (provider??(claimed.kind==="STORYBOARD_GENERATE"?generateStoryboard:generateIdeas))(claimed.input);if(claimed.kind==="STORYBOARD_GENERATE")storyboard=validateStoryboard(output);else ideas=validateIdeas(output,claimed.input.count);} catch(e) {failure=e instanceof ProjectError?{code:e.code,message:e.message}:{code:"PROVIDER_OUTCOME_UNKNOWN",message:"The provider result is uncertain. Operator review is required."};}
+ try {const output=await (provider??(claimed.kind==="SCENE_REGENERATE"?generateScene:claimed.kind==="STORYBOARD_GENERATE"?generateStoryboard:generateIdeas))(claimed.input);if(claimed.kind==="SCENE_REGENERATE")sceneResult=regeneratedStoryboard(output,claimed);else if(claimed.kind==="STORYBOARD_GENERATE")storyboard=validateStoryboard(output);else ideas=validateIdeas(output,claimed.input.count);} catch(e) {failure=e instanceof ProjectError?{code:e.code,message:e.message}:{code:"PROVIDER_OUTCOME_UNKNOWN",message:"The provider result is uncertain. Operator review is required."};}
  const proposalId=uuid7();
  await inTransaction(c.client,async session=>{
   const job=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:id,state:"RUNNING","lease.holder":holder,"lease.epoch":claimed.lease.epoch},{session}); if(!job) return;
@@ -120,10 +128,10 @@ export async function runIdea(c:DatabaseConnection,id:string,provider?:typeof ge
   if(!p) {await finish(c,job,"CANCELLED",null,session);return;}
   if(unsafe) {await finish(c,job,"REQUIRES_ATTENTION",failure,session);return;}
   if(job.cancelRequested) {await finish(c,job,"CANCELLED",null,session);return;}
-  if(failure || (!ideas&&!storyboard)) {await finish(c,job,"FAILED",failure,session);return;}
+  if(failure || (!ideas&&!storyboard&&!sceneResult)) {await finish(c,job,"FAILED",failure,session);return;}
   const stale=p.revision!==job.baseRevision;
-  const content=storyboard?{kind:"STORYBOARD" as const,payload:{storyboard:proposedStoryboard(storyboard,job,proposalId,p.nextStoryboardVersion)}}:{kind:"IDEAS" as const,payload:{ideas:ideas!}};
-  await c.db.collection<PlanningProposal>("proposals").insertOne({_id:proposalId,schemaVersion:1,ownerId:job.ownerId,projectId:job.projectId,createdAt:now,updatedAt:now,version:1,...content,baseRevision:job.baseRevision,targetSceneId:null,state:stale?"CONFLICTED":"PENDING",payloadHash:digest(content.payload),sourceJobId:id,appliedStoryboardId:null,appliedAt:null},{session});
+  const content=sceneResult?{kind:"SCENE" as const,payload:{storyboard:sceneResult}}:storyboard?{kind:"STORYBOARD" as const,payload:{storyboard:proposedStoryboard(storyboard,job,proposalId,p.nextStoryboardVersion)}}:{kind:"IDEAS" as const,payload:{ideas:ideas!}};
+  await c.db.collection<PlanningProposal>("proposals").insertOne({_id:proposalId,schemaVersion:1,ownerId:job.ownerId,projectId:job.projectId,createdAt:now,updatedAt:now,version:1,...content,baseRevision:job.baseRevision,targetSceneId:sceneResult?claimed.input!.sceneContext!.sceneId:null,state:stale?"CONFLICTED":"PENDING",payloadHash:digest(content.payload),sourceJobId:id,appliedStoryboardId:null,appliedAt:null} as PlanningProposal,{session});
   await finish(c,job,stale?"SUPERSEDED":"SUCCEEDED",null,session,[proposalId]);
  });
 }

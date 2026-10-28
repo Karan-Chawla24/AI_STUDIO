@@ -46,6 +46,10 @@
     "storyboard:verify": "node --conditions=react-server --import tsx scripts/storyboard-db.ts verify",
     "planning:worker": "node --conditions=react-server --import tsx scripts/storyboard-db.ts worker",
     "test:planning-request": "node --import tsx --test tests/planning-request.test.ts",
+    "scene:migrate": "node --conditions=react-server --import tsx scripts/storyboard-db.ts migrate",
+    "scene:verify": "node --conditions=react-server --import tsx scripts/storyboard-db.ts verify",
+    "test:scenes-browser": "node --conditions=react-server --import tsx tests/scenes.browser.ts",
+    "test:scenes": "node --conditions=react-server --import tsx --test tests/scenes.test.ts",
     "test:plan-refresh-browser": "node --conditions=react-server --import tsx tests/plan-refresh.browser.ts"
   },
   "dependencies": {

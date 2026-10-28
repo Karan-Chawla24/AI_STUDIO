@@ -3,12 +3,13 @@ import {createHash} from "node:crypto";
 import {ProjectError,uuid7} from "./model";
 import type {IdeaJob,Proposal} from "./ideas-model";
 export const sceneTypes = ["TITLE","PROCESS_FLOW","DIAGRAM","GENERIC_EDITORIAL"] as const;
-export type Scene = {sceneId:string;order:number;narration:string;speechText:string;speechMode:"AUTO";visualDescription:string;motionDescription:string;sceneType:typeof sceneTypes[number];estimatedDurationSeconds:number;captionHighlights:string[];compiled:null;validationErrors:[]};
-export type Storyboard = {_id:string;schemaVersion:1;ownerId:string;projectId:string;createdAt:Date;version:number;baseRevision:number;title:string;hook:string;targetDurationSeconds:number;visualStyle:"minimal_editorial";compileState:"NEEDS_COMPILATION";contentHash:string;scenes:Scene[];warnings:[];compilerVersion:null;templateCatalogVersion:"visual-v1";normalizerVersion:"speech-pass-through-v1";sourceProposalId:string;sourceJobId:string};
+export type Scene = {sceneId:string;order:number;narration:string;speechText:string;speechMode:"AUTO"|"OVERRIDE";visualDescription:string;motionDescription:string;sceneType:typeof sceneTypes[number];estimatedDurationSeconds:number;captionHighlights:string[];compiled:null;validationErrors:[]};
+export type Storyboard = {_id:string;schemaVersion:1;ownerId:string;projectId:string;createdAt:Date;version:number;baseRevision:number;title:string;hook:string;targetDurationSeconds:number;visualStyle:"minimal_editorial";compileState:"NEEDS_COMPILATION";contentHash:string;scenes:Scene[];warnings:[];compilerVersion:null;templateCatalogVersion:"visual-v1";normalizerVersion:"speech-pass-through-v1";sourceProposalId:string|null;sourceJobId:string|null};
 export function storyboardDTO(s:Storyboard) {return {id:s._id,projectId:s.projectId,version:s.version,baseRevision:s.baseRevision,title:s.title,hook:s.hook,targetDurationSeconds:s.targetDurationSeconds,visualStyle:s.visualStyle,compileState:s.compileState,contentHash:s.contentHash,scenes:s.scenes.map(({compiled,...scene})=>({...scene,compiledPreview:compiled})),warnings:s.warnings,createdAt:s.createdAt.toISOString()};}
 export type StoryboardDTO=ReturnType<typeof storyboardDTO>;
 export type StoryboardProposal=Omit<Proposal,"kind"|"payload"|"appliedStoryboardId">&{kind:"STORYBOARD";payload:{storyboard:StoryboardDTO};appliedStoryboardId:string|null};
-export type PlanningProposal=Proposal|StoryboardProposal;
+export type SceneProposal=Omit<StoryboardProposal,"kind"|"targetSceneId">&{kind:"SCENE";targetSceneId:string};
+export type PlanningProposal=Proposal|StoryboardProposal|SceneProposal;
 export type StoryboardInput={expectedRevision:number;guidance:string;replaceExistingConfirmed:boolean};
 export function storyboardInput(value:unknown):StoryboardInput {
  const d=value as Record<string,unknown>;
@@ -41,7 +42,7 @@ export function proposedStoryboard(content:ReturnType<typeof validateStoryboard>
  const targetDurationSeconds=job.input!.duration;
  return storyboardDTO({_id:uuid7(),schemaVersion:1,ownerId:job.ownerId,projectId:job.projectId,createdAt:new Date(),version,baseRevision:job.baseRevision,...content,targetDurationSeconds,visualStyle:"minimal_editorial",compileState:"NEEDS_COMPILATION",contentHash:storyboardHash({...content,targetDurationSeconds}),warnings:[],compilerVersion:null,templateCatalogVersion:"visual-v1",normalizerVersion:"speech-pass-through-v1",sourceProposalId:proposalId,sourceJobId:job._id});
 }
-export function snapshotFromProposal(p:StoryboardProposal,version:number):Storyboard {
+export function snapshotFromProposal(p:StoryboardProposal|SceneProposal,version:number):Storyboard {
  const s=p.payload.storyboard;
  return {_id:s.id,schemaVersion:1,ownerId:p.ownerId,projectId:p.projectId,createdAt:new Date(),version,baseRevision:p.baseRevision,title:s.title,hook:s.hook,targetDurationSeconds:s.targetDurationSeconds,visualStyle:s.visualStyle,compileState:"NEEDS_COMPILATION",contentHash:s.contentHash,scenes:s.scenes.map(({compiledPreview,...scene})=>{void compiledPreview;return {...scene,compiled:null};}),warnings:[],compilerVersion:null,templateCatalogVersion:"visual-v1",normalizerVersion:"speech-pass-through-v1",sourceProposalId:p._id,sourceJobId:p.sourceJobId};
 }

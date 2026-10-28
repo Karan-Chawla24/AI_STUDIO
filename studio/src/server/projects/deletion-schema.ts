@@ -1,3 +1,4 @@
+import { sceneShape } from "./scene-shapes";
 import { storyboardShape } from "./storyboard-shapes";
 import { ideasShape } from "./ideas-shapes";
 import "server-only";
@@ -25,7 +26,7 @@ async function verifyShape(db: Db) {
   if (!tombstone || !isDeepStrictEqual(tombstone.key, tombstoneIndex.key) || !isDeepStrictEqual(tombstone.partialFilterExpression, tombstoneIndex.partialFilterExpression) || tombstone.expireAfterSeconds !== tombstoneIndex.expireAfterSeconds || tombstone.unique || tombstone.hidden || tombstone.sparse) throw new DatabaseError("DELETION_INDEX_DRIFT", "Tombstone retention index requires repair.");
   for (const [name, expected] of Object.entries({ ...extensions, deletionJobs: validator })) {
     const info = await db.listCollections({ name }, { nameOnly: false }).next();
-    if ((!isDeepStrictEqual(info?.options?.validator, expected) && !isDeepStrictEqual(info?.options?.validator, planShape(name, expected)) && !isDeepStrictEqual(info?.options?.validator, ideasShape(name, planShape(name, expected))) && !isDeepStrictEqual(info?.options?.validator, storyboardShape(name, ideasShape(name, planShape(name, expected))))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("DELETION_SCHEMA_DRIFT", "Deletion schema requires migration or repair.");
+    if ((!isDeepStrictEqual(info?.options?.validator, expected) && !isDeepStrictEqual(info?.options?.validator, planShape(name, expected)) && !isDeepStrictEqual(info?.options?.validator, ideasShape(name, planShape(name, expected))) && !isDeepStrictEqual(info?.options?.validator, storyboardShape(name, ideasShape(name, planShape(name, expected)))) && !isDeepStrictEqual(info?.options?.validator,sceneShape(name,storyboardShape(name, ideasShape(name, planShape(name, expected)))))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("DELETION_SCHEMA_DRIFT", "Deletion schema requires migration or repair.");
   }
   const actual = await db.collection("deletionJobs").listIndexes().toArray();
   for (const expected of indexes) {

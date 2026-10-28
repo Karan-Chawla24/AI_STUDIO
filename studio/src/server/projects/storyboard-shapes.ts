@@ -26,3 +26,5 @@ export function storyboardShape(name:string,original:Document):Document {
  }
  return result;
 }
+
+export const storyboardApiSchema=object({id:text(),projectId:text(),createdAt:text(40),...content(true)});
