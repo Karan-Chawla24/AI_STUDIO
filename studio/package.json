@@ -54,7 +54,12 @@
     "compile:migrate": "node --conditions=react-server --import tsx scripts/storyboard-db.ts migrate",
     "compile:verify": "node --conditions=react-server --import tsx scripts/storyboard-db.ts verify",
     "test:compilation": "node --conditions=react-server --import tsx --test tests/compilation.test.ts",
-    "test:compilation-browser": "node --conditions=react-server --import tsx tests/compilation.browser.ts"
+    "test:compilation-browser": "node --conditions=react-server --import tsx tests/compilation.browser.ts",
+    "settings:migrate": "node --conditions=react-server --import tsx scripts/storyboard-db.ts migrate",
+    "settings:verify": "node --conditions=react-server --import tsx scripts/storyboard-db.ts verify",
+    "voices:prepare": "node --conditions=react-server --import tsx scripts/prepare-voice-samples.ts",
+    "test:settings": "node --conditions=react-server --import tsx --test tests/settings.test.ts",
+    "test:settings-browser": "node --conditions=react-server --import tsx tests/settings.browser.ts"
   },
   "dependencies": {
     "@better-auth/mongo-adapter": "1.7.12",

@@ -1,3 +1,4 @@
+import {settingsShape} from "./settings-shapes";
 import {compileShape} from "./compile-shapes";
 import "server-only";
 import {createHash} from "node:crypto";
@@ -12,7 +13,7 @@ export const sceneValidators=Object.fromEntries(Object.entries({...storyboardVal
 const partialFilterExpression={sourceProposalId:{$type:"string"}};
 const id="F11_0001_scene_editing",checksum=createHash("sha256").update(JSON.stringify({validators:sceneValidators,partialFilterExpression})).digest("hex");
 export async function requireSceneMigration(db:Db){const row=await db.collection<{_id:string;state:string;checksum:string}>("schemaMigrations").findOne({_id:id});if(row?.state!=="APPLIED"||row.checksum!==checksum)throw new DatabaseError("SCENE_MIGRATION_REQUIRED","Run scene:migrate.");}
-async function shape(db:Db){for(const [name,validator] of Object.entries(sceneValidators)){const row=await db.listCollections({name},{nameOnly:false}).next();if((!isDeepStrictEqual(row?.options?.validator,validator)&&!isDeepStrictEqual(row?.options?.validator,compileShape(name,validator)))||row?.options?.validationLevel!=="strict"||row?.options?.validationAction!=="error")throw new DatabaseError("SCENE_SCHEMA_DRIFT","Run scene:migrate and verify.");}const index=(await db.collection("storyboards").listIndexes().toArray()).find(i=>i.name==="storyboard_source");if(!index?.unique||!isDeepStrictEqual(index.partialFilterExpression,partialFilterExpression))throw new DatabaseError("SCENE_INDEX_DRIFT","Repair storyboard source index.");}
+async function shape(db:Db){for(const [name,validator] of Object.entries(sceneValidators)){const row=await db.listCollections({name},{nameOnly:false}).next();if((!isDeepStrictEqual(row?.options?.validator,validator)&&!isDeepStrictEqual(row?.options?.validator,compileShape(name,validator)) && !isDeepStrictEqual(row?.options?.validator,settingsShape(name,compileShape(name,validator))))||row?.options?.validationLevel!=="strict"||row?.options?.validationAction!=="error")throw new DatabaseError("SCENE_SCHEMA_DRIFT","Run scene:migrate and verify.");}const index=(await db.collection("storyboards").listIndexes().toArray()).find(i=>i.name==="storyboard_source");if(!index?.unique||!isDeepStrictEqual(index.partialFilterExpression,partialFilterExpression))throw new DatabaseError("SCENE_INDEX_DRIFT","Repair storyboard source index.");}
 export async function verifyScenes(db:Db){await verifyStoryboards(db);await shape(db);await requireSceneMigration(db);}
 export async function migrateScenes(db:Db){
  // F11 can fail between dropping the old source index and creating its replacement.

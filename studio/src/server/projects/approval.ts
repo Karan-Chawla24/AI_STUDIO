@@ -1,3 +1,4 @@
+import {requireVoice} from "../catalog";
 import "server-only";
 import type {Document} from "mongodb";
 import type {DatabaseConnection} from "../db/client";
@@ -22,8 +23,9 @@ export async function approvalCommand(c:DatabaseConnection,owner:string,projectI
   const story=await c.db.collection<Storyboard>("storyboards").findOne({_id:p.activeStoryboardId??"",ownerId:owner,projectId},{session});
   const now=new Date(),settings={...p.settings,...(action==="voice"?{voiceKey:d.voiceKey as Project["settings"]["voiceKey"]}:{})};
   const hash=story?.compileState==="VALID"?snapshotHash(story,settings):null;
-  if(action==="approve"&&(!story||!hash||story.scenes.some(s=>!s.compiled||s.validationErrors.length)||!settings.voiceKey||d.storyboardId!==story._id||d.snapshotHash!==hash||p.currentSnapshotHash!==hash))throw new ProjectError("APPROVAL_NOT_READY","Compile the current storyboard, select a voice and review the latest snapshot before approving.",409);
+  if(action==="approve"&&(!story||!hash||story.scenes.some(s=>!s.compiled||s.validationErrors.length)||!settings.voiceKey||d.storyboardId!==story._id||d.snapshotHash!==hash))throw new ProjectError("APPROVAL_NOT_READY","Compile the current storyboard, select a voice and review the latest snapshot before approving.",409);
   if(action==="voice"&&p.settings.voiceKey===settings.voiceKey)return {data:{project:projectDTO(p)},status:200,operationId:p._id};
+  if(action==="approve")requireVoice(settings.voiceKey);
   const approval=action==="approve"?{storyboardId:story!._id,snapshotHash:hash!,approvedBy:owner,approvedAt:now}:null;
   const saved=await c.db.collection<Project>("projects").findOneAndUpdate({_id:p._id,resourceVersion:p.resourceVersion},{$set:{settings,approval,currentSnapshotHash:hash,updatedAt:now,"statusProjection.creationStatus":approval?"STORYBOARD_APPROVED":p.activeJobId?p.statusProjection.creationStatus:story?"STORYBOARD_REVIEW":"DRAFT","statusProjection.computedAt":now},$inc:{resourceVersion:1,revision:action==="voice"?1:0,"publishFence.epoch":1}},{session,returnDocument:"after"});
   if(!saved)throw new ProjectError("REVISION_CONFLICT","Refresh before continuing.",409);

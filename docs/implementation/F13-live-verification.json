@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-29",
+  "indianMaleStatus": 402,
+  "indianFemaleStatus": 402,
+  "testingVoices": [
+    {
+      "name": "Brian",
+      "accent": "American",
+      "status": 200,
+      "durationSeconds": 5.712109
+    },
+    {
+      "name": "Bella",
+      "accent": "American",
+      "status": 200,
+      "durationSeconds": 6.176508
+    }
+  ],
+  "provider": "ElevenLabs, existing free account",
+  "music": "disabled by owner",
+  "samples": "cached locally; no repeat provider requests for playback"
+}

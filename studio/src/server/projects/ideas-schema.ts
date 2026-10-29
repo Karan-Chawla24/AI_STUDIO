@@ -1,3 +1,4 @@
+import {settingsShape} from "./settings-shapes";
 import {compileShape} from "./compile-shapes";
 import { sceneShape } from "./scene-shapes";
 import { storyboardShape } from "./storyboard-shapes";
@@ -35,7 +36,7 @@ const id = "F09_0001_idea_proposals", checksum = createHash("sha256").update(JSO
 async function shape(db: Db) {
  for (const [name, validator] of Object.entries({...schemas,...extensions})) {
   const info = await db.listCollections({name}, {nameOnly:false}).next();
-  if ((!isDeepStrictEqual(info?.options?.validator,validator) && !isDeepStrictEqual(info?.options?.validator,storyboardShape(name,validator)) && !isDeepStrictEqual(info?.options?.validator,sceneShape(name,storyboardShape(name,validator))) && !isDeepStrictEqual(info?.options?.validator,compileShape(name,sceneShape(name,storyboardShape(name,validator))))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("IDEAS_SCHEMA_DRIFT", "Run ideas:migrate and verify the idea schema.");
+  if ((!isDeepStrictEqual(info?.options?.validator,validator) && !isDeepStrictEqual(info?.options?.validator,storyboardShape(name,validator)) && !isDeepStrictEqual(info?.options?.validator,sceneShape(name,storyboardShape(name,validator))) && !isDeepStrictEqual(info?.options?.validator,compileShape(name,sceneShape(name,storyboardShape(name,validator)))) && !isDeepStrictEqual(info?.options?.validator,settingsShape(name,compileShape(name,sceneShape(name,storyboardShape(name,validator)))))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("IDEAS_SCHEMA_DRIFT", "Run ideas:migrate and verify the idea schema.");
   if (!indexes[name]) continue;
   const actual = await db.collection(name).listIndexes().toArray();
   for (const expected of indexes[name]) { const found = actual.find(i => i.name === expected.name); if (!found || !isDeepStrictEqual(found.key,expected.key) || !!found.unique !== !!expected.unique || !isDeepStrictEqual(found.partialFilterExpression,expected.partialFilterExpression) || found.sparse || found.hidden) throw new DatabaseError("IDEAS_INDEX_DRIFT", "Idea indexes require repair."); }

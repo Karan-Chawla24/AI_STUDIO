@@ -1,3 +1,4 @@
+import {updateSettings} from "./settings";
 import {approvalCommand,revisionInput} from "./approval";
 import {editStoryboard} from "./scene-service";
 import {regenerateInput} from "./scene-model";
@@ -53,7 +54,8 @@ export async function ideasRequest(request:Request,projectId:string,parts:string
   if(request.headers.get("origin")!==config.origin||request.headers.get("sec-fetch-site")==="cross-site"||!validCsrf(request.headers.get("x-csrf-token"),identity,config.secret))throw new ProjectError("CSRF_FAILED","Refresh your session and try again.",403);
   const key=request.headers.get("idempotency-key");if(!key)throw new ProjectError("PRECONDITION_REQUIRED","An Idempotency-Key is required.",428);if(!/^[\x20-\x7e]{16,128}$/.test(key))throw new ProjectError("VALIDATION_FAILED","Use a valid retry key.",422);
   const body=await strictJSON(request);let result;
-  if(parts.length===1&&((section==="approval"&&["POST","DELETE"].includes(request.method))||(section==="settings"&&request.method==="PATCH")))result=await approvalCommand(c,owner,projectId,section==="settings"?"voice":request.method==="DELETE"?"revoke":"approve",body,key,identity.user.emailVerified,requestId);
+  if(parts.length===1&&section==="settings"&&request.method==="PATCH")result=await updateSettings(c,owner,projectId,body,key,requestId);
+  else if(parts.length===1&&section==="approval"&&["POST","DELETE"].includes(request.method)){result=await approvalCommand(c,owner,projectId,request.method==="DELETE"?"revoke":"approve",body,key,identity.user.emailVerified,requestId);}
   else if(request.method==="DELETE")throw new ProjectError("METHOD_NOT_ALLOWED","This action is unavailable.",405);
   else if(section==="storyboards"&&id==="compile"&&parts.length===2&&request.method==="POST"){const d=revisionInput(body);result=await admitIdeas(c,owner,projectId,"STORYBOARD_COMPILE",{expectedRevision:Number(d.expectedRevision),guidance:"",count:8},key,identity.user.emailVerified);}
   else if(request.method==="PATCH"){if(!((section==="storyboard"&&parts.length===1)||(section==="scenes"&&parts.length===2)))throw new ProjectError("METHOD_NOT_ALLOWED","This action is unavailable.",405);result=await editStoryboard(c,owner,projectId,section==="scenes"?id:null,body,key,requestId);}

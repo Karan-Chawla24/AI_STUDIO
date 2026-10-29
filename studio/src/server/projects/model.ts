@@ -31,7 +31,7 @@ export function validateCreate(input: unknown): CreateProject {
 export type Project = {
   _id: string; schemaVersion: 1; ownerId: string; createdAt: Date; updatedAt: Date; revision: number; resourceVersion: number;
   title: string; titleSort: string; originalIdea: string; audience: string | null; niche: string | null; refinedIdea: string | null;
-  settings: { voiceKey: "INDIAN_MALE" | "INDIAN_FEMALE" | null; captionStyle: "CLEAN"; musicAssetId: null; targetDurationSeconds: number };
+  settings: { voiceKey: "INDIAN_MALE" | "INDIAN_FEMALE" | "TEST_MALE" | "TEST_FEMALE" | null; captionStyle: "CLEAN"|"BOLD"|"HIGHLIGHTED"; musicAssetId: null; targetDurationSeconds: number };
   nextStoryboardVersion: number; activeStoryboardId: string | null; currentSnapshotHash: string|null; approval: {storyboardId:string;snapshotHash:string;approvedBy:string;approvedAt:Date}|null; latestRenderId: null; currentRenderId: null; activeJobId: string | null;
   socialCaptionDraft: null; warnings: { code: "PLAN_CHANGED"; message: string; sceneId: null; severity: "WARNING" }[]; lifecycle: "ACTIVE" | "DELETING" | "DELETED"; deletedAt: Date | null; deletionId: string | null;
   publishFence: { epoch: number; blocked: boolean; activeIntentId: null; reason: string | null };

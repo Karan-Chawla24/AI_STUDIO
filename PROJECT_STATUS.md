@@ -6,7 +6,7 @@ This is the source of truth for implementation progress. The PRD defines product
 
 ## Current milestone
 
-**F12 — Compilation and storyboard approval are ready for owner testing.** Atlas migration/verification, browser acceptance, live Gemini compilation, TypeScript/lint and production build passed. Preview: http://localhost:3001. Stop for owner testing before F13.
+**F13 — Voice, captions and project settings are complete and ready for owner testing.** Brian/Bella are available as American testing voices; music remains disabled. Integration/browser/live-preview checks, TypeScript, lint, production build and Atlas schema verification passed. Preview is running at http://localhost:3001. Stop for owner testing before F14.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -27,8 +27,8 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F09 | Idea suggestions and refinement | Validated AI proposals require explicit acceptance | Complete; owner approved and authorized progression |
 | F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Complete; owner authorized progression |
 | F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Complete; owner authorized F12 |
-| F12 | Compilation and storyboard approval | Approval waits for saves/compilation; relevant edits invalidate approval | Complete and activated; awaiting owner testing |
-| F13 | Voice, captions and music settings | Two validated voices, required captions and optional licensed music | Planned |
+| F12 | Compilation and storyboard approval | Approval waits for saves/compilation; relevant edits invalidate approval | Complete; owner authorized F13 |
+| F13 | Voice, captions and music settings | Validated testing voices, required captions and No music per owner decision | Complete; awaiting owner testing |
 | F14 | Durable job/outbox infrastructure | Idempotency, leases, retries, cancellation and reconciliation tested | Planned |
 | F15 | Narration and timing | Per-scene audio, alignment and measured-duration repair work | Planned |
 | F16 | Render worker and private media storage | Trusted templates produce validated 60–90s vertical MP4s; private media access enforced | Planned |
@@ -42,6 +42,15 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-29 — F13 voice, captions and project settings
+
+- Added private catalog and cached voice previews, Clean/Bold/Highlighted caption selection with style examples, required captions, target duration (60–90s) and owner-requested No music. Changes persist with revision/ownership/CSRF/idempotency checks and clear approval; canonical no-ops retain it.
+- Reused the POC ElevenLabs model/key and checked both Indian voice bindings. Both library voices returned HTTP 402. Owner explicitly authorized Brian/Bella as separately keyed, clearly labelled American testing voices. Both returned HTTP 200 and their 5.71s/6.18s cached clips decoded in Chrome. Indian presets stay unavailable. Testing voices use free-account credits and are for noncommercial evaluation; no payment or subscription change was made.
+- Added authenticated, session-bound, 15-minute preview grants and private byte-range delivery. Runtime preview never accepts arbitrary narration or calls the provider. Fixed samples/manifests and secrets remain in ignored local files. Music assets, project narration, rendering and R2 remain outside this milestone.
+- Added F13_0001_project_settings; previous migration checksums/indexes remain unchanged. The upgrade clears prior approvals once because dependency binding now includes actual voice/model/settings and caption catalog. Compiled scenes/history remain intact. Metadata-only duration changes preserve existing scenes with a plan-change warning.
+- Checks: 74 affected integration/regression tests passed. Final eight F13 tests passed, including legacy-approval upgrade/rerun, audit rollback, concurrent saves, availability and protected preview access. Browser flow passed voice preview playback, unavailable Indian options, caption persistence/approval invalidation, 390/320px and zero page errors. Real cached samples decoded without repeat provider calls. See [F13 guide](docs/implementation/F13_Project_Settings.md), [browser report](docs/implementation/F13-browser-verification.json), [live report](docs/implementation/F13-live-verification.json).
+- Activation complete: TypeScript, ESLint and production build passed. Atlas F13 schema/index verification passed. Production preview (PID 832), planning worker (PID 34644) and cleanup worker (PID 30304) are ready. Sign-in returns 200; anonymous projects, catalog and voice-sample requests return 401. Existing storyboards retain scenes/history but require renewed approval. Stop for owner testing before F14.
 
 ### 2026-10-29 — Group repeated compilation warnings
 
@@ -313,4 +322,4 @@ Development dependency follow-up: `braces` latest published version checked was 
 - This is an early-access local test, not a production release; email delivery, role separation and deployment hardening remain outstanding.
 - The configured Gemini model is used for explicitly requested planning and compilation. Credentials remain in ignored local environment files; voice synthesis/rendering are not integrated yet.
 - Voice rights, licensed music, Meta permissions and deployment region remain launch decisions.
-- Next action: owner tests F12 using the compilation/approval checklist above. After approval, implement F13 voice, caption and music settings. Real email delivery/domain verification and operational hardening remain release requirements.
+- Next action: owner tests F13 using its voice/caption/settings checklist. After approval, implement F14 durable job/outbox infrastructure. Real email delivery/domain verification and operational hardening remain release requirements.

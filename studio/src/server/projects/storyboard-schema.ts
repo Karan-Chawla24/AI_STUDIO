@@ -1,3 +1,4 @@
+import {settingsShape} from "./settings-shapes";
 import {compileShape} from "./compile-shapes";
 import { sceneShape } from "./scene-shapes";
 import "server-only";
@@ -16,7 +17,7 @@ const indexes=[{name:"storyboard_version",key:{projectId:1,version:1},unique:tru
 const id="F10_0001_storyboards",checksum=createHash("sha256").update(JSON.stringify({validators:storyboardValidators,storyboardValidator,indexes})).digest("hex");
 async function shape(db:Db,allowMissingSourceIndex=false){
  for(const [name,validator] of Object.entries({...storyboardValidators,storyboards:storyboardValidator})){
-  const info=await db.listCollections({name},{nameOnly:false}).next();if((!isDeepStrictEqual(info?.options?.validator,validator)&&!isDeepStrictEqual(info?.options?.validator,sceneShape(name,validator)) && !isDeepStrictEqual(info?.options?.validator,compileShape(name,sceneShape(name,validator))))||info?.options?.validationLevel!=="strict"||info?.options?.validationAction!=="error")throw new DatabaseError("STORYBOARD_SCHEMA_DRIFT","Run storyboard:migrate and verify the schema.");
+  const info=await db.listCollections({name},{nameOnly:false}).next();if((!isDeepStrictEqual(info?.options?.validator,validator)&&!isDeepStrictEqual(info?.options?.validator,sceneShape(name,validator)) && !isDeepStrictEqual(info?.options?.validator,compileShape(name,sceneShape(name,validator))) && !isDeepStrictEqual(info?.options?.validator,settingsShape(name,compileShape(name,sceneShape(name,validator)))))||info?.options?.validationLevel!=="strict"||info?.options?.validationAction!=="error")throw new DatabaseError("STORYBOARD_SCHEMA_DRIFT","Run storyboard:migrate and verify the schema.");
  }
  const actual=await db.collection("storyboards").listIndexes().toArray();for(const index of indexes){const found=actual.find(i=>i.name===index.name);if(!found&&allowMissingSourceIndex&&index.name==="storyboard_source")continue;if(!found||!isDeepStrictEqual(found.key,index.key)||!!found.unique!==("unique" in index)||found.sparse||found.hidden||(found.partialFilterExpression && (index.name!=="storyboard_source"||!isDeepStrictEqual(found.partialFilterExpression,{sourceProposalId:{$type:"string"}}))))throw new DatabaseError("STORYBOARD_INDEX_DRIFT","Storyboard indexes require repair.");}
 }

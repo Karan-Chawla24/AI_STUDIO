@@ -1,0 +1,20 @@
+{
+  "captionPersistence": "passed",
+  "captionApprovalInvalidation": "passed",
+  "voicePreviewPlayback": "passed with injected fixture audio",
+  "unavailableIndianPresets": "passed",
+  "compileQueue": "passed",
+  "layoutPreviews": 6,
+  "voiceSelection": "passed",
+  "approval": "passed",
+  "reload": "passed",
+  "revocation": "passed",
+  "editInvalidation": "passed",
+  "mobileWidths": [
+    390,
+    320
+  ],
+  "pageErrors": [],
+  "provider": "injected deterministic provider",
+  "database": "isolated temporary replica set"
+}
