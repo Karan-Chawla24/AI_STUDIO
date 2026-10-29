@@ -43,6 +43,11 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Change log
 
+### 2026-10-29 — F13 duration badge refresh
+
+- The plan reference badge now reads the latest accepted project settings from editor state instead of the initial page prop, so a saved target-duration change updates the badge without reload.
+- TypeScript, targeted ESLint and production build passed. Local preview rebuilt for testing; F14 remains gated on owner review.
+
 ### 2026-10-29 — F13 voice, captions and project settings
 
 - Added private catalog and cached voice previews, Clean/Bold/Highlighted caption selection with style examples, required captions, target duration (60–90s) and owner-requested No music. Changes persist with revision/ownership/CSRF/idempotency checks and clear approval; canonical no-ops retain it.
