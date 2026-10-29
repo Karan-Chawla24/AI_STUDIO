@@ -1,6 +1,6 @@
 # Project status — Educational Video Studio
 
-Last updated: 2026-10-28
+Last updated: 2026-10-29
 
 This is the source of truth for implementation progress. The PRD defines product scope; the API, database and system-design documents define the implementation contracts. Stitch boards are visual references, not proof that features work.
 
@@ -42,6 +42,11 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-29 — Group repeated compilation warnings
+
+- Compilation review now groups identical warnings by code, message and severity, displaying each once with sorted, deduplicated affected scene numbers. Distinct warnings remain separate; storyboard-wide and unlinked warnings retain explicit scope labels. This is a display-only change; saved compilation data and approval hashes are unchanged.
+- Render smoke check passed: eight identical warnings plus a duplicate produce one message listing scenes 1–8; a distinct warning identifies scene 3 separately. TypeScript, ESLint and production build passed. Preview restarted (PID 25224); sign-in returns HTTP 200.
 
 ### 2026-10-28 — F12 review fixes: canonical saves and approved filtering
 
