@@ -1,3 +1,4 @@
+import {migrateJobs} from "../src/server/jobs/schema";
 import {admitIdeas,runIdea,decideProposal} from "../src/server/projects/ideas";
 import {randomUUID} from "node:crypto";
 import type {StoryboardProposal} from "../src/server/projects/storyboard-model";
@@ -13,7 +14,7 @@ import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 async function main() {
  const {chromium}=createRequire(process.cwd()+'/package.json')(process.env.PLAYWRIGHT_MODULE || 'playwright');
- const server=await MongoMemoryReplSet.create({binary:{version:'8.2.6'},replSet:{count:1}}); const connection=await connectDatabase({uri:server.getUri(),database:'studio_scene_browser',production:false}); await migrateScenes(connection.db);
+ const server=await MongoMemoryReplSet.create({binary:{version:'8.2.6'},replSet:{count:1}}); const connection=await connectDatabase({uri:server.getUri(),database:'studio_scene_browser',production:false}); await migrateScenes(connection.db); await migrateJobs(connection.db);
  const origin='http://localhost:3110'; const child=spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--port','3110'],{env:{...process.env,NODE_ENV:'development',MONGODB_URI:server.getUri(),MONGODB_DB_NAME:'studio_scene_browser',APP_ORIGIN:origin,BETTER_AUTH_SECRET:randomBytes(32).toString('hex'),EMAIL_DELIVERY:'preview',GEMINI_API_KEY:'isolated-test-key',GEMINI_MODEL:'gemini-test'},windowsHide:true,stdio:['ignore','pipe','pipe']}); let logs=''; child.stdout.on('data',d=>logs+=d); child.stderr.on('data',d=>logs+=d); let browser;
  try {
   let ready=false; for(let i=0;i<100;i++){try{if((await fetch(origin+'/sign-in')).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,1000));} assert.ok(ready);

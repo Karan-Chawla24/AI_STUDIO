@@ -1,3 +1,4 @@
+import {migrateJobs} from "../src/server/jobs/schema";
 import assert from "node:assert/strict";
 import {before,after,test} from "node:test";
 import {randomUUID} from "node:crypto";
@@ -19,7 +20,7 @@ const create=async()=> (await createProject(c,owner,validateCreate({title:"Inter
 const admission=(id:string,key=randomUUID())=>admitIdeas(c,owner,id,"IDEA_REFINE",{expectedRevision:1,count:1,guidance:""},key,true,"gemini-test");
 const fake=async()=>({ideas:[{title:"A packet’s journey",refinedIdea:"Follow one packet from browser to server.",rationale:"Makes the network tangible."}]});
 const proposal=async(id:string)=>(await c.db.collection<Proposal>("proposals").findOne({projectId:id}))!;
-before(async()=>{server=await MongoMemoryReplSet.create({binary:{version:"8.2.6"},replSet:{count:1}});c=await connectDatabase({uri:server.getUri(),database:"studio_ideas_test",production:false});await migrateIdeas(c.db);await provisionProfile(c.db,user);await provisionProfile(c.db,{...user,id:"ideas-other"});},{timeout:240000});
+before(async()=>{server=await MongoMemoryReplSet.create({binary:{version:"8.2.6"},replSet:{count:1}});c=await connectDatabase({uri:server.getUri(),database:"studio_ideas_test",production:false});await migrateIdeas(c.db);await migrateJobs(c.db);await provisionProfile(c.db,user);await provisionProfile(c.db,{...user,id:"ideas-other"});},{timeout:240000});
 after(async()=>{await c?.client.close();await server?.stop();});
 test("migration repeatability and strict validation",async()=>{assert.equal(await migrateIdeas(c.db),"already-applied");await verifyIdeas(c.db);for(const x of [{expectedRevision:1,count:0},{expectedRevision:1,count:11},{expectedRevision:1,guidance:"x".repeat(1001)},{expectedRevision:1,ownerId:"x"}])assert.throws(()=>ideaInput(x,false));assert.throws(()=>validateIdeas({ideas:[]},1));assert.throws(()=>validateIdeas({ideas:[{title:"x",refinedIdea:"y",rationale:"z",ownerId:owner}]},1));});
 test("verified admission, ownership, idempotency and active reservation",async()=>{const p=await create();await assert.rejects(admitIdeas(c,owner,p.id,"IDEA_REFINE",{expectedRevision:1,count:1,guidance:""},randomUUID(),false,"gemini-test"),{code:"EMAIL_NOT_VERIFIED"});const key=randomUUID(),r=await admission(p.id,key);assert.equal((await admission(p.id,key)).data.jobId,r.data.jobId);await assert.rejects(admission(p.id),{code:"PROJECT_BUSY"});await assert.rejects(admitIdeas(c,"ideas-other",p.id,"IDEA_REFINE",{expectedRevision:1,count:1,guidance:""},randomUUID(),true,"gemini-test"),{code:"RESOURCE_NOT_FOUND"});await assert.rejects(admitIdeas(c,owner,p.id,"IDEA_REFINE",{expectedRevision:1,count:1,guidance:"new"},key,true,"gemini-test"),{code:"IDEMPOTENCY_CONFLICT"});await runIdea(c,String(r.data.jobId),fake);});

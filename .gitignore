@@ -20,3 +20,6 @@ internet-poc/out/
 *.pem
 *.key
 .local/
+
+# Local durable workflow broker state
+.inngest/

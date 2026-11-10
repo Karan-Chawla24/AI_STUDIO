@@ -1,3 +1,4 @@
+import type {Attempt} from "../jobs/outbox";
 import {updateSettings} from "./settings";
 import {approvalCommand,revisionInput} from "./approval";
 import {editStoryboard} from "./scene-service";
@@ -13,8 +14,9 @@ import { strictJSON, validCsrf, projectFailure } from "./http";
 import { ProjectError, projectIdPattern } from "./model";
 import { readProject } from "./service";
 import { ideaInput, jobDTO, proposalDTO, type IdeaJob, } from "./ideas-model";
-import { admitIdeas, decideProposal, cancelIdea, ownedResource } from "./ideas";
+import { admitIdeas, decideProposal, cancelIdea, retryIdea, ownedResource } from "./ideas";
 import { cursorKeys } from "./library";
+async function viewJob(c:DatabaseConnection,j:IdeaJob){const attempt=await c.db.collection<Attempt>("jobAttempts").findOne({_id:j._id});const hasChild=!!await c.db.collection<Attempt>("jobAttempts").findOne({parentId:j._id});return jobDTO(j,attempt?{...attempt,hasChild}:undefined);}
 export async function ideaList(c:DatabaseConnection,owner:string,projectId:string,kind:"jobs"|"proposals"|"storyboards",params:URLSearchParams,secret:string) {
  await readProject(c,owner,projectId);
  const states=kind==="jobs"?["QUEUED","RUNNING","SUCCEEDED","FAILED","CANCELLED","SUPERSEDED","REQUIRES_ATTENTION"]:["PENDING","APPLIED","DISMISSED","CONFLICTED"];
@@ -36,7 +38,7 @@ export async function ideaList(c:DatabaseConnection,owner:string,projectId:strin
  if(last){const row=await c.db.collection<IdeaJob|PlanningProposal|Storyboard>(kind==="jobs"?"generationJobs":kind).findOne({_id:last,ownerId:owner,projectId});if(!row)invalid();filter.$or=[{createdAt:{$lt:row!.createdAt}},{createdAt:row!.createdAt,_id:{$lt:last}}];}
  const rows=await c.db.collection<IdeaJob|PlanningProposal|Storyboard>(kind==="jobs"?"generationJobs":kind).find(filter,{maxTimeMS:5000}).sort({createdAt:-1,_id:-1}).limit(Number(limit)+1).toArray(),hasMore=rows.length>Number(limit),items=rows.slice(0,Number(limit));
  const payload=Buffer.from(JSON.stringify({binding,asOf,last:items.at(-1)?._id})).toString("base64url");
- return {items:items.map(r=>kind==="jobs"?jobDTO(r as IdeaJob):kind==="storyboards"?{id:r._id,version:(r as Storyboard).version,title:(r as Storyboard).title,compileState:(r as Storyboard).compileState,createdAt:r.createdAt.toISOString()}:proposalDTO(r as PlanningProposal)),page:{hasMore,nextCursor:hasMore?`${payload}.${mac(keys.current,payload)}`:null,limit:Number(limit)}};
+ return {items:await Promise.all(items.map(async r=>kind==="jobs"?viewJob(c,r as IdeaJob):kind==="storyboards"?{id:r._id,version:(r as Storyboard).version,title:(r as Storyboard).title,compileState:(r as Storyboard).compileState,createdAt:r.createdAt.toISOString()}:proposalDTO(r as PlanningProposal))),page:{hasMore,nextCursor:hasMore?`${payload}.${mac(keys.current,payload)}`:null,limit:Number(limit)}};
 }
 export async function ideasRequest(request:Request,projectId:string,parts:string[],deps:{connection:DatabaseConnection;identity:Awaited<ReturnType<typeof getIdentity>>;config:ReturnType<typeof readAuthConfig>}) {
  const requestId=randomUUID(),headers=new Headers({"X-Request-Id":requestId,"Cache-Control":"private, no-store",Vary:"Cookie"});
@@ -48,7 +50,7 @@ export async function ideasRequest(request:Request,projectId:string,parts:string
    if(url.search)throw new ProjectError("INVALID_QUERY","This endpoint accepts no query parameters.",400);
    const row=await ownedResource(c,owner,projectId,id,section as "jobs"|"proposals"|"storyboards");
    const tag=`"${section}-${row._id}-${section==="jobs"?(row as IdeaJob).resourceVersion:(row as PlanningProposal).version}"`;headers.set("ETag",tag);headers.set("Cache-Control","private, no-cache");if(request.headers.get("if-none-match")===tag)return new Response(null,{status:304,headers});
-   return Response.json({data:section==="jobs"?jobDTO(row as IdeaJob):section==="storyboards"?storyboardDTO(row as Storyboard):proposalDTO(row as PlanningProposal),requestId},{headers});
+   return Response.json({data:section==="jobs"?await viewJob(c,row as IdeaJob):section==="storyboards"?storyboardDTO(row as Storyboard):proposalDTO(row as PlanningProposal),requestId},{headers});
   }
   if(!["POST","PATCH","DELETE"].includes(request.method)||url.search)throw new ProjectError("METHOD_NOT_ALLOWED","This action is unavailable.",405);
   if(request.headers.get("origin")!==config.origin||request.headers.get("sec-fetch-site")==="cross-site"||!validCsrf(request.headers.get("x-csrf-token"),identity,config.secret))throw new ProjectError("CSRF_FAILED","Refresh your session and try again.",403);
@@ -66,6 +68,7 @@ export async function ideasRequest(request:Request,projectId:string,parts:string
    const d=body as {expectedVersion:number;expectedRevision?:number;selectedIdeaId?:string};const apply=section==="proposals"&&action==="apply";
    if(!d||typeof d!=="object"||Array.isArray(d)||Object.keys(d).some(k=>!["expectedVersion",...(apply?["expectedRevision","selectedIdeaId"]:[])].includes(k))||!Number.isSafeInteger(d.expectedVersion)||d.expectedVersion<1||(apply&&(!Number.isSafeInteger(d.expectedRevision)||Number(d.expectedRevision)<1||(d.selectedIdeaId!==undefined&&typeof d.selectedIdeaId!=="string"))))throw new ProjectError("VALIDATION_FAILED","Review the saved version and selection.",422);
    if(section==="proposals"&&parts.length===3&&["apply","dismiss"].includes(action))result=await decideProposal(c,owner,projectId,id,action as "apply"|"dismiss",d,key,requestId);
+   else if(section==="jobs"&&parts.length===3&&action==="retry")result=await retryIdea(c,owner,projectId,id,d.expectedVersion,key,identity.user.emailVerified);
    else if(section==="jobs"&&parts.length===3&&action==="cancel")result=await cancelIdea(c,owner,projectId,id,d.expectedVersion,key);
    else throw new ProjectError("RESOURCE_NOT_FOUND","This action does not exist.",404);
   }

@@ -1,12 +1,12 @@
 # Project status — Educational Video Studio
 
-Last updated: 2026-10-29
+Last updated: 2026-11-10
 
 This is the source of truth for implementation progress. The PRD defines product scope; the API, database and system-design documents define the implementation contracts. Stitch boards are visual references, not proof that features work.
 
 ## Current milestone
 
-**F13 — Voice, captions and project settings are complete and ready for owner testing.** Brian/Bella are available as American testing voices; music remains disabled. Integration/browser/live-preview checks, TypeScript, lint, production build and Atlas schema verification passed. Preview is running at http://localhost:3001. Stop for owner testing before F14.
+**F14 — Durable jobs and transactional outbox are complete for local testing.** Owner authorized local Inngest testing. Regression, browser, broker, build and Atlas migration checks passed. Local app and broker health checks passed after resuming on 2026-11-10; dispatcher and cleanup worker report ready. Stop for owner testing before F15.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -28,8 +28,8 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F10 | Storyboard generation | Async job produces validated 6–12-scene proposal; application is explicit | Complete; owner authorized progression |
 | F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Complete; owner authorized F12 |
 | F12 | Compilation and storyboard approval | Approval waits for saves/compilation; relevant edits invalidate approval | Complete; owner authorized F13 |
-| F13 | Voice, captions and music settings | Validated testing voices, required captions and No music per owner decision | Complete; awaiting owner testing |
-| F14 | Durable job/outbox infrastructure | Idempotency, leases, retries, cancellation and reconciliation tested | Planned |
+| F13 | Voice, captions and music settings | Validated testing voices, required captions and No music per owner decision | Complete; owner authorized F14 |
+| F14 | Durable job/outbox infrastructure | Idempotency, leases, retries, cancellation and reconciliation tested | Complete; awaiting owner testing |
 | F15 | Narration and timing | Per-scene audio, alignment and measured-duration repair work | Planned |
 | F16 | Render worker and private media storage | Trusted templates produce validated 60–90s vertical MP4s; private media access enforced | Planned |
 | F17 | Preview, downloads and render history | Current/stale versions distinguished; authorized downloads work | Planned |
@@ -42,6 +42,15 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-10-31 — F14 durable planning jobs and local Inngest
+
+- Owner authorized progression and local Inngest testing. Added atomic job/outbox/attempt admission, epoch-fenced dispatch with retry backoff, transactional consumer deduplication, planning step journals, execution heartbeat/recovery and explicit operator settlement of unknown outcomes. Provider calls are never automatically resent after uncertainty.
+- Added owner-scoped, verified, CSRF/idempotency-protected linked retries for unchanged failed/cancelled planning work; maximum three attempts per chain, also subject to the existing twenty-request hourly planning limit. Browser Retry request survives reload. Retry advances the parent's resourceVersion so cached actions refresh. Project deletion closes active step journals.
+- Added F14_0001_durable_planning with strict schemas, unique deduplication/retry indexes and legacy queued-job backfill. Prior checksums remain unchanged; failure-injection test proves recovery after interrupted index creation.
+- Checks: 60 planning/scene/compilation/settings regression tests passed; final 14 job tests and eight deletion tests passed, including migration recovery, retry ETag invalidation and hourly retry quotas. Real local Inngest delivery/duplicate test invoked the deterministic provider exactly once. Chrome retry-after-reload, settings/approval, duration badge, 320/390px and zero-page-error checks passed. TypeScript, lint and production build passed. No paid provider calls were made by these tests.
+- Dependency review: audit reports 20 moderate and four high entries, including propagated entries. New high findings are Inngest's Zod dependency and the development CLI's archive dependency; compatible follow-redirects update applied. This is a local test milestone; production deployment requires advisory resolution/mitigation. See the [F14 implementation guide](docs/implementation/F14_Durable_Jobs.md), [broker report](docs/implementation/F14-inngest-verification.json) and [browser report](docs/implementation/F14-browser-verification.json).
+- Atlas migration applied and independently verified on 2026-10-31. Local app, broker and workers passed readiness then; restarted on 2026-11-10 after session interruption. Broker persistence is ignored by Git, including when started through npm. On 2026-11-10: app PID 36780, broker PID 34700, dispatcher PID 21824 and cleanup PID 33168; sign-in and broker health return 200, anonymous projects/catalog return 401. Stop for owner testing before F15.
 
 ### 2026-10-29 — F13 duration badge refresh
 
@@ -327,4 +336,4 @@ Development dependency follow-up: `braces` latest published version checked was 
 - This is an early-access local test, not a production release; email delivery, role separation and deployment hardening remain outstanding.
 - The configured Gemini model is used for explicitly requested planning and compilation. Credentials remain in ignored local environment files; voice synthesis/rendering are not integrated yet.
 - Voice rights, licensed music, Meta permissions and deployment region remain launch decisions.
-- Next action: owner tests F13 using its voice/caption/settings checklist. After approval, implement F14 durable job/outbox infrastructure. Real email delivery/domain verification and operational hardening remain release requirements.
+- Next action: owner tests F14 job reload recovery, cancellation and bounded retry using its checklist. After approval, implement F15 narration/timing. Real email delivery/domain verification, dependency advisory review and operational hardening remain release requirements.

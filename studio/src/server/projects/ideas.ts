@@ -1,3 +1,5 @@
+import {enqueueJob,dispatchOutbox,type Attempt} from "../jobs/outbox";
+import {requireJobsMigration} from "../jobs/schema";
 import {requireCompileMigration} from "./compile-schema";
 import {generateLayouts,compileStoryboard,snapshotHash} from "./compiler";
 import {requireSceneMigration} from "./scene-schema";
@@ -50,6 +52,7 @@ export async function admitIdeas(c:DatabaseConnection,owner:string,projectId:str
   const snapshot={...(compileContext?{compileContext}:{}),...(sceneContext?{sceneContext}:{}),title:p.title,idea:p.refinedIdea??p.originalIdea,audience:p.audience,niche:p.niche,duration:p.settings.targetDurationSeconds,count:"count" in input?input.count:8,guidance:input.guidance,model:configuredModel};
   const job:IdeaJob={_id:jobId,schemaVersion:1,ownerId:owner,projectId,createdAt:now,updatedAt:now,resourceVersion:1,kind,state:"QUEUED",active:true,stage:"QUEUED",baseRevision:p.revision,input:snapshot,inputHash:digest(snapshot),proposalIds:[],cancelRequested:false,lease:{holder:null,epoch:0,expiresAt:null},startedAt:null,finishedAt:null,error:null,unsafeToRetry:false};
   await c.db.collection<IdeaJob>("generationJobs").insertOne(job,{session});
+  await enqueueJob(c.db,job,session);
   await c.db.collection<Project>("projects").updateOne({_id:projectId,resourceVersion:p.resourceVersion},{$set:{activeJobId:jobId,updatedAt:now,"statusProjection.creationStatus":"PLANNING","statusProjection.computedAt":now},$inc:{resourceVersion:1}},{session});
   return {data:{operationId:jobId,jobId,state:"QUEUED",statusUrl:`/api/v1/projects/${projectId}/jobs/${jobId}`,pollAfterMs:3000},status:202,operationId:jobId,pending:true};
  });
@@ -104,31 +107,50 @@ export async function cancelIdea(c:DatabaseConnection,owner:string,projectId:str
 }
 async function finish(c:DatabaseConnection,job:IdeaJob,state:IdeaJob["state"],error:IdeaJob["error"],session:ClientSession,proposalIds:string[]=[]) {
  const now=new Date(), unsafe=state==="REQUIRES_ATTENTION";
+ await c.db.collection("jobSteps").updateOne({jobId:job._id,state:"RUNNING"},{$set:{state:unsafe?"OUTCOME_UNKNOWN":state==="SUCCEEDED"?"SUCCEEDED":state==="FAILED"?"FAILED":"CANCELLED",finishedAt:now,"lease.expiresAt":null}},{session});
  await c.db.collection<IdeaJob>("generationJobs").updateOne({_id:job._id},{$set:{state,active:unsafe,stage:"FINISHED",finishedAt:now,updatedAt:now,error,unsafeToRetry:unsafe,proposalIds,"lease.expiresAt":null},$inc:{resourceVersion:1}},{session});
  await c.db.collection<Project>("projects").updateOne({_id:job.projectId,ownerId:job.ownerId,lifecycle:"ACTIVE",activeJobId:job._id},{$set:{activeJobId:unsafe?job._id:null,"statusProjection.creationStatus":unsafe?"NEEDS_ATTENTION":(await c.db.collection<Project>("projects").findOne({_id:job.projectId},{session}))?.approval?"STORYBOARD_APPROVED":(await c.db.collection<Project>("projects").findOne({_id:job.projectId},{session}))?.activeStoryboardId?"STORYBOARD_REVIEW":"DRAFT","statusProjection.computedAt":now,updatedAt:now},$inc:{resourceVersion:1}},{session});
  if(!unsafe) await c.db.collection("idempotencyRecords").updateMany({operationId:job._id,state:"ACCEPTED"},{$set:{state:"TERMINAL",terminalAt:now,expiresAt:new Date(now.getTime()+7*86400000)}},{session});
 }
-export async function runIdea(c:DatabaseConnection,id:string,provider?:typeof generateIdeas) {
+export async function heartbeatIdea(c:DatabaseConnection,id:string,holder:string,epoch:number){
+ const now=new Date();return inTransaction(c.client,async session=>{
+  const result=await c.db.collection<IdeaJob>("generationJobs").updateOne({_id:id,state:"RUNNING","lease.holder":holder,"lease.epoch":epoch,"lease.expiresAt":{$gt:now}},{$set:{"lease.expiresAt":new Date(now.getTime()+180000)}},{session});
+  if(result.matchedCount)await c.db.collection("jobSteps").updateOne({jobId:id,state:"RUNNING","lease.holder":holder,"lease.epoch":epoch},{$set:{"lease.expiresAt":new Date(now.getTime()+180000)}},{session});
+  return result.matchedCount===1;
+ });
+}
+export async function runIdea(c:DatabaseConnection,id:string,provider?:typeof generateIdeas,eventId?:string) {
+ await requireJobsMigration(c.db);
  // A claim and SENT journal commit before any network effect. No claim can be sent twice.
  const holder=uuid7();
  const claimed=await inTransaction(c.client,async session=>{
+  if(eventId){
+   const event=await c.db.collection("outboxEvents").findOne({_id:eventId as never,aggregateId:id,eventType:"studio/planning.requested"},{session});
+   if(!event)throw new ProjectError("INVALID_EVENT","Unknown planning event.",400);
+   if(await c.db.collection("inboxEvents").findOne({consumer:"planning-v1",eventId},{session}))return null;
+  }
   const job=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:id,state:"QUEUED",active:true},{session}); if(!job) return null;
+  if(eventId)await c.db.collection("inboxEvents").insertOne({_id:eventId,consumer:"planning-v1",eventId,aggregateId:id,state:"APPLIED",appliedAt:new Date()} as Document,{session});
   const p=await c.db.collection<Project>("projects").findOne({_id:job.projectId,ownerId:job.ownerId,lifecycle:"ACTIVE",activeJobId:id},{session});
   if(!p || p.revision!==job.baseRevision) {await finish(c,job,"SUPERSEDED",null,session);return null;}
   if(!await c.db.collection<UserProfile>("userProfiles").findOneAndUpdate({_id:job.ownerId,lifecycle:"ACTIVE"},{$inc:{fenceVersion:1}},{session})) {await finish(c,job,"CANCELLED",null,session);return null;}
   await c.db.collection<Project>("projects").updateOne({_id:p._id,resourceVersion:p.resourceVersion},{$inc:{resourceVersion:1}},{session});
   const now=new Date(), updated=await c.db.collection<IdeaJob>("generationJobs").findOneAndUpdate({_id:id,state:"QUEUED"},{$set:{state:"RUNNING",stage:"PLANNING",startedAt:now,updatedAt:now,lease:{holder,epoch:job.lease.epoch+1,expiresAt:new Date(now.getTime()+180000)}},$inc:{resourceVersion:1}},{session,returnDocument:"after"});
   await c.db.collection("providerCalls").insertOne({_id:uuid7(),schemaVersion:1,ownerId:job.ownerId,projectId:job.projectId,jobId:id,createdAt:now,updatedAt:now,state:"SENT",requestHash:job.inputHash,modelVersion:job.input!.model,sentAt:now,finishedAt:null} as Document,{session});
+  await c.db.collection("jobSteps").insertOne({_id:id,jobId:id,ownerId:job.ownerId,projectId:job.projectId,stepKey:"planning",inputHash:job.inputHash,state:"RUNNING",lease:updated!.lease,startedAt:now,finishedAt:null} as Document,{session});
   return updated;
  });
  if(!claimed?.input) return;
+ const heartbeat=setInterval(()=>{void heartbeatIdea(c,id,holder,claimed.lease.epoch).catch(()=>{});},30000);
+ heartbeat.unref();
  let compileResult:ReturnType<typeof compileStoryboard>|null=null;
  let sceneResult:ReturnType<typeof regeneratedStoryboard>|null=null;
  let ideas:ReturnType<typeof validateIdeas>|null=null, storyboard:ReturnType<typeof validateStoryboard>|null=null, failure:IdeaJob["error"]=null;
  try {const output=await (provider??(claimed.kind==="STORYBOARD_COMPILE"?generateLayouts:claimed.kind==="SCENE_REGENERATE"?generateScene:claimed.kind==="STORYBOARD_GENERATE"?generateStoryboard:generateIdeas))(claimed.input);if(claimed.kind==="STORYBOARD_COMPILE")compileResult=compileStoryboard(claimed.input.compileContext!,output);else if(claimed.kind==="SCENE_REGENERATE")sceneResult=regeneratedStoryboard(output,claimed);else if(claimed.kind==="STORYBOARD_GENERATE")storyboard=validateStoryboard(output);else ideas=validateIdeas(output,claimed.input.count);} catch(e) {failure=e instanceof ProjectError?{code:e.code,message:e.message}:{code:"PROVIDER_OUTCOME_UNKNOWN",message:"The provider result is uncertain. Operator review is required."};}
+ clearInterval(heartbeat);
  const proposalId=uuid7();
  await inTransaction(c.client,async session=>{
-  const job=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:id,state:"RUNNING","lease.holder":holder,"lease.epoch":claimed.lease.epoch},{session}); if(!job) return;
+  const job=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:id,state:"RUNNING","lease.holder":holder,"lease.epoch":claimed.lease.epoch,"lease.expiresAt":{$gt:new Date()}},{session}); if(!job) return;
   const now=new Date(), unsafe=failure?.code==="PROVIDER_OUTCOME_UNKNOWN";
   await c.db.collection("providerCalls").updateOne({jobId:id,state:"SENT"},{$set:{state:unsafe?"OUTCOME_UNKNOWN":failure?"FAILED":"SUCCEEDED",updatedAt:now,finishedAt:now}},{session});
   const p=await c.db.collection<Project>("projects").findOne({_id:job.projectId,ownerId:job.ownerId,lifecycle:"ACTIVE",activeJobId:id},{session});
@@ -150,12 +172,48 @@ export async function runIdea(c:DatabaseConnection,id:string,provider?:typeof ge
   await finish(c,job,stale?"SUPERSEDED":"SUCCEEDED",null,session,[proposalId]);
  });
 }
-export async function drainIdeas(c:DatabaseConnection,provider?:typeof generateIdeas) {
+export async function reconcileIdeas(c:DatabaseConnection) {
  await requireIdeasMigration(c.db);
  const expired=await c.db.collection<IdeaJob>("generationJobs").find({state:"RUNNING","lease.expiresAt":{$lte:new Date()}}).limit(50).toArray();
  for(const row of expired) await inTransaction(c.client,async session=>{const job=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:row._id,state:"RUNNING","lease.expiresAt":{$lte:new Date()}},{session});if(!job)return;await c.db.collection("providerCalls").updateOne({jobId:job._id,state:"SENT"},{$set:{state:"OUTCOME_UNKNOWN",updatedAt:new Date()}},{session});await finish(c,job,"REQUIRES_ATTENTION",{code:"PROVIDER_OUTCOME_UNKNOWN",message:"The worker stopped before recording the response. Operator review is required."},session);});
- const jobs=await c.db.collection<IdeaJob>("generationJobs").find({state:"QUEUED",active:true}).sort({createdAt:1}).limit(10).toArray();
- for(const job of jobs) await runIdea(c,job._id,provider);
- return jobs.length;
+ return expired.length;
+}
+export async function drainIdeas(c:DatabaseConnection,provider?:typeof generateIdeas) {
+ await reconcileIdeas(c);
+ return dispatchOutbox(c.db,async event=>runIdea(c,event.data.jobId,provider,event.id),10);
+}
+
+export async function retryIdea(c:DatabaseConnection,owner:string,projectId:string,id:string,version:number,key:string,verified:boolean){
+ if(!verified)throw new ProjectError("EMAIL_NOT_VERIFIED","Verify your email before retrying.",403);
+ await requireJobsMigration(c.db);const newId=uuid7();
+ return ideaCommand(c,owner,projectId,`/api/v1/projects/${projectId}/jobs/${id}/retry`,key,{expectedVersion:version},async(p,session)=>{
+  const previous=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:id,ownerId:owner,projectId},{session});if(!previous)throw missingProject();
+  if(previous.resourceVersion!==version)throw new ProjectError("VERSION_CONFLICT","Refresh the job before retrying.",409);
+  if(previous.unsafeToRetry||previous.active||!["FAILED","CANCELLED"].includes(previous.state))throw new ProjectError("JOB_NOT_RETRYABLE","This request cannot be safely retried.",409);
+  if(p.activeJobId)throw new ProjectError("PROJECT_BUSY","Wait for the current request.",409);
+  if(p.revision!==previous.baseRevision||!previous.input)throw new ProjectError("PROPOSAL_STALE","Your plan changed. Start a new request.",409);
+  if(await c.db.collection<IdeaJob>("generationJobs").countDocuments({ownerId:owner,createdAt:{$gt:new Date(Date.now()-3600000)}},{session})>=20)throw new ProjectError("RATE_LIMITED","You have reached twenty planning requests this hour. Try later.",429);
+  const parent=await c.db.collection<Attempt>("jobAttempts").findOne({_id:id},{session});
+  if(!parent||parent.attempt>=3)throw new ProjectError("RETRY_LIMIT_REACHED","This request has reached its three-attempt limit.",409);
+  if(await c.db.collection<Attempt>("jobAttempts").findOne({parentId:id},{session}))throw new ProjectError("JOB_ALREADY_RETRIED","This request already has a retry. Refresh its history.",409);
+  const now=new Date(),job:IdeaJob={...previous,_id:newId,createdAt:now,updatedAt:now,resourceVersion:1,state:"QUEUED",active:true,stage:"QUEUED",proposalIds:[],cancelRequested:false,lease:{holder:null,epoch:0,expiresAt:null},startedAt:null,finishedAt:null,error:null,unsafeToRetry:false};
+  await c.db.collection<IdeaJob>("generationJobs").insertOne(job,{session});await enqueueJob(c.db,job,session,parent);
+  await c.db.collection<IdeaJob>("generationJobs").updateOne({_id:id,resourceVersion:version},{$inc:{resourceVersion:1},$set:{updatedAt:now}},{session});
+  await c.db.collection<Project>("projects").updateOne({_id:projectId,resourceVersion:p.resourceVersion},{$set:{activeJobId:newId,updatedAt:now,"statusProjection.creationStatus":"PLANNING","statusProjection.computedAt":now},$inc:{resourceVersion:1}},{session});
+  return {data:{operationId:newId,jobId:newId,retryOfJobId:id,retryRootId:parent.rootId,attempt:parent.attempt+1,state:"QUEUED",statusUrl:`/api/v1/projects/${projectId}/jobs/${newId}`,pollAfterMs:3000},status:202,operationId:newId,pending:true};
+ });
+}
+
+// Service-only risk settlement. Never invent a provider success or expose this to browser callers.
+export async function settleUnknown(c:DatabaseConnection,id:string,version:number,operator:string,reason:string,duplicateCostAccepted:boolean){
+ if(!operator.trim()||operator.length>200||reason.trim().length<10||reason.length>1000||duplicateCostAccepted!==true)throw new ProjectError("VALIDATION_FAILED","Record an operator, reason and explicit duplicate-cost acknowledgement.",422);
+ await requireJobsMigration(c.db);
+ return inTransaction(c.client,async session=>{
+  const job=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:id,state:"REQUIRES_ATTENTION",unsafeToRetry:true,resourceVersion:version},{session});
+  if(!job)throw new ProjectError("VERSION_CONFLICT","The uncertain job changed or was already resolved.",409);
+  await c.db.collection("jobResolutions").insertOne({_id:uuid7(),jobId:id,ownerId:job.ownerId,projectId:job.projectId,operator:operator.trim(),reason:reason.trim(),duplicateCostAccepted:true,createdAt:new Date()} as Document,{session});
+  // Keep providerCalls OUTCOME_UNKNOWN as evidence; settlement only releases local admission.
+  await finish(c,job,"FAILED",{code:"OPERATOR_SETTLED",message:"An operator settled this uncertain request. A new attempt may incur another charge."},session);
+ });
 }
 export async function ownedResource(c:DatabaseConnection,owner:string,projectId:string,id:string,kind:"jobs"|"proposals"|"storyboards") { await readProject(c,owner,projectId);const row=await c.db.collection<IdeaJob|PlanningProposal|Storyboard>(kind==="jobs"?"generationJobs":kind).findOne({_id:id,ownerId:owner,projectId});if(!row)throw missingProject();return row; }

@@ -53,6 +53,7 @@ export async function deleteProject(connection: DatabaseConnection, ownerId: str
         if (!planning) throw new ProjectError("DELETION_UNAVAILABLE", "Unknown active work requires cleanup support.", 409);
         await db.collection("generationJobs").updateMany({ ownerId, projectId, active: true }, { $set: { active: false, state: "CANCELLED", stage: "FINISHED", cancelRequested: true, finishedAt: now, updatedAt: now, "lease.expiresAt": null }, $inc: { resourceVersion: 1 } }, { session });
         await db.collection("providerCalls").updateMany({ ownerId, projectId, state: "SENT" }, { $set: { state: "OUTCOME_UNKNOWN", updatedAt: now } }, { session });
+        await db.collection("jobSteps").updateMany({ ownerId, projectId, state: "RUNNING" }, { $set: { state: "OUTCOME_UNKNOWN", finishedAt: now, "lease.expiresAt": null } }, { session });
       }
       const changed = await db.collection<Project>("projects").updateOne({ _id: projectId, ownerId, lifecycle: "ACTIVE", revision: input.expectedRevision, resourceVersion: project.resourceVersion }, { $set: { lifecycle: "DELETING", activeJobId: null, deletedAt: now, deletionId, updatedAt: now, approval: null, "publishFence.blocked": true, "publishFence.reason": "PROJECT_DELETION" }, $inc: { resourceVersion: 1, "publishFence.epoch": 1 } }, { session });
       if (changed.matchedCount !== 1) throw new ProjectError("REVISION_CONFLICT", "Refresh this project before deleting.", 409);

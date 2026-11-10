@@ -1,0 +1,10 @@
+{
+  "broker": "Inngest CLI 1.49.0",
+  "sdk": "4.26.2",
+  "dispatch": "passed",
+  "workflow": "passed",
+  "duplicateDelivery": "passed",
+  "providerCalls": 1,
+  "provider": "injected deterministic fixture; no paid calls",
+  "database": "temporary replica set"
+}

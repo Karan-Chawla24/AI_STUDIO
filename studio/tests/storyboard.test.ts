@@ -1,3 +1,4 @@
+import {migrateJobs} from "../src/server/jobs/schema";
 import assert from "node:assert/strict";
 import {before,after,test} from "node:test";
 import {randomUUID} from "node:crypto";
@@ -24,7 +25,7 @@ const admit=(id:string,revision=1,replace=false,key=randomUUID())=>admitIdeas(c,
 const proposal=async(id:string)=>(await c.db.collection<StoryboardProposal>("proposals").findOne({projectId:id,kind:"STORYBOARD"},{sort:{createdAt:-1}}))!;
 const generate=async(id:string,revision=1,replace=false)=>{const a=await admit(id,revision,replace);await runIdea(c,String(a.data.jobId),async()=>fixture());return proposal(id);};
 const apply=(id:string,p:StoryboardProposal,revision=p.baseRevision,key=randomUUID(),requestId=randomUUID())=>decideProposal(c,owner,id,p._id,"apply",{expectedVersion:p.version,expectedRevision:revision},key,requestId);
-before(async()=>{server=await MongoMemoryReplSet.create({binary:{version:"8.2.6"},replSet:{count:1}});c=await connectDatabase({uri:server.getUri(),database:"studio_storyboard_test",production:false});await migrateIdeas(c.db);const old=await c.db.collection("schemaMigrations").find({state:"APPLIED"}).toArray();await migrateStoryboards(c.db);for(const row of old)assert.equal((await c.db.collection("schemaMigrations").findOne({_id:row._id}))?.checksum,row.checksum);await provisionProfile(c.db,user);await provisionProfile(c.db,{...user,id:"story-other"});},{timeout:240000});
+before(async()=>{server=await MongoMemoryReplSet.create({binary:{version:"8.2.6"},replSet:{count:1}});c=await connectDatabase({uri:server.getUri(),database:"studio_storyboard_test",production:false});await migrateIdeas(c.db);const old=await c.db.collection("schemaMigrations").find({state:"APPLIED"}).toArray();await migrateStoryboards(c.db);for(const row of old)assert.equal((await c.db.collection("schemaMigrations").findOne({_id:row._id}))?.checksum,row.checksum);await migrateJobs(c.db);await provisionProfile(c.db,user);await provisionProfile(c.db,{...user,id:"story-other"});},{timeout:240000});
 after(async()=>{await c?.client.close();await server?.stop();});
 
 test("cancel from a queued view recovers after worker claim and discards the running result",async()=>{

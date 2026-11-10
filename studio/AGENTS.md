@@ -9,7 +9,7 @@
 - Run `npm run check` and `npm run build` for relevant scaffold changes.
 - Use `dev` for ongoing development. After each completed change, update `../PROJECT_STATUS.md`, run relevant checks, then commit and push to `origin/dev`. The user authorized this ongoing workflow. Never include secrets, generated caches or unrelated local files; report any failed push accurately.
 - Keep `main` for reviewed milestones. Merge `dev` into `main` through a pull request when the user approves promotion; do not push development changes directly to `main`.
-- Owner review gate (2026-10-29): owner authorized F13 after F12. Finish voice/caption/settings verification and activation, provide the test flow, then stop for owner testing before F14. Keep music disabled; use Brian/Bella as clearly labelled American testing voices while Indian presets are unavailable.
+- Owner review gate (2026-10-31): owner authorized F14 and local Inngest testing. Finish durable job/outbox verification and activation, provide the test flow, then stop for owner testing before F15. Keep music disabled; use Brian/Bella as clearly labelled American testing voices while Indian presets are unavailable.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

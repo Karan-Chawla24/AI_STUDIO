@@ -1,3 +1,4 @@
+import {matchesJobsShape} from "../jobs/shapes";
 import {settingsShape} from "./settings-shapes";
 import {compileShape} from "./compile-shapes";
 import { sceneShape } from "./scene-shapes";
@@ -5,7 +6,7 @@ import { storyboardShape } from "./storyboard-shapes";
 import { ideasShape } from "./ideas-shapes";
 import "server-only";
 import { createHash } from "node:crypto";
-import { isDeepStrictEqual } from "node:util";
+
 import type { Db } from "mongodb";
 import { runMigration } from "../db/migrations";
 import { DatabaseError } from "../db/config";
@@ -19,7 +20,7 @@ const checksum = createHash("sha256").update(JSON.stringify(extensions)).digest(
 async function verifyShape(db: Db) {
   for (const [name, validator] of Object.entries(extensions)) {
     const info = await db.listCollections({ name }, { nameOnly: false }).next();
-    if ((!isDeepStrictEqual(info?.options?.validator, validator) && !isDeepStrictEqual(info?.options?.validator, ideasShape(name, validator)) && !isDeepStrictEqual(info?.options?.validator, storyboardShape(name, ideasShape(name, validator))) && !isDeepStrictEqual(info?.options?.validator,sceneShape(name,storyboardShape(name, ideasShape(name, validator)))) && !isDeepStrictEqual(info?.options?.validator,compileShape(name,sceneShape(name,storyboardShape(name, ideasShape(name, validator))))) && !isDeepStrictEqual(info?.options?.validator,settingsShape(name,compileShape(name,sceneShape(name,storyboardShape(name, ideasShape(name, validator))))))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("PLAN_SCHEMA_DRIFT", "Plan schema requires migration or repair.");
+    if ((!matchesJobsShape(info?.options?.validator, validator) && !matchesJobsShape(info?.options?.validator, ideasShape(name, validator)) && !matchesJobsShape(info?.options?.validator, storyboardShape(name, ideasShape(name, validator))) && !matchesJobsShape(info?.options?.validator,sceneShape(name,storyboardShape(name, ideasShape(name, validator)))) && !matchesJobsShape(info?.options?.validator,compileShape(name,sceneShape(name,storyboardShape(name, ideasShape(name, validator))))) && !matchesJobsShape(info?.options?.validator,settingsShape(name,compileShape(name,sceneShape(name,storyboardShape(name, ideasShape(name, validator))))))) || info?.options?.validationLevel !== "strict" || info?.options?.validationAction !== "error") throw new DatabaseError("PLAN_SCHEMA_DRIFT", "Plan schema requires migration or repair.");
   }
 }
 export async function verifyPlan(db: Db) {
