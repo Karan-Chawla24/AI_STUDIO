@@ -6,7 +6,7 @@ This is the source of truth for implementation progress. The PRD defines product
 
 ## Current milestone
 
-**F14 — Durable jobs and transactional outbox are complete for local testing.** Owner authorized local Inngest testing. Regression, browser, broker, build and Atlas migration checks passed. Local app and broker health checks passed after resuming on 2026-11-10; dispatcher and cleanup worker report ready. Stop for owner testing before F15.
+**F14 — Durable jobs and transactional outbox are complete for local testing.** Owner authorized local Inngest testing. Regression, browser, broker, build and Atlas migration checks passed. Local app and broker health checks passed after resuming on 2026-11-10; dispatcher and cleanup worker report ready. Owner manual QA passed on 2026-11-10; stale retry UI follow-up verified. F15 awaits owner authorization.
 
 Build in `studio/`. Keep the existing `internet-poc/` as the reference video pipeline. Synced `sources/` files are read-only.
 
@@ -29,7 +29,7 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F11 | Scene editing and regeneration | Immutable revisions, conflicts and proposal comparison work | Complete; owner authorized F12 |
 | F12 | Compilation and storyboard approval | Approval waits for saves/compilation; relevant edits invalidate approval | Complete; owner authorized F13 |
 | F13 | Voice, captions and music settings | Validated testing voices, required captions and No music per owner decision | Complete; owner authorized F14 |
-| F14 | Durable job/outbox infrastructure | Idempotency, leases, retries, cancellation and reconciliation tested | Complete; awaiting owner testing |
+| F14 | Durable job/outbox infrastructure | Idempotency, leases, retries, cancellation and reconciliation tested | Complete; owner manual QA passed, stale retry fix verified |
 | F15 | Narration and timing | Per-scene audio, alignment and measured-duration repair work | Planned |
 | F16 | Render worker and private media storage | Trusted templates produce validated 60–90s vertical MP4s; private media access enforced | Planned |
 | F17 | Preview, downloads and render history | Current/stale versions distinguished; authorized downloads work | Planned |
@@ -42,6 +42,12 @@ Complete and verify one small feature at a time. Update this file in the same ch
 | F24 | Deployment and release | Environment, migrations, worker, backups and end-to-end acceptance verified | Planned |
 
 ## Change log
+
+### 2026-11-10 — F14 manual QA and stale retry action
+
+- Owner manual QA passed reload recovery, linked retries, cancellation, the three-attempt limit, stale-plan rejection and mobile layouts. One invalid provider response was safely rejected without changing saved work.
+- Both idea and storyboard panels now show Retry request only when the job's baseRevision matches the current saved project revision. This hides stale actions immediately after autosave, even while a job refresh is delayed; server retry validation remains authoritative.
+- Browser regression passed for both panels before/after save and reload with delayed job requests, the server stale guard and zero page errors/provider calls. Focused lint and TypeScript checks passed; production build passed. Evidence: docs/implementation/F14-stale-retry-verification.json. F15 has not started.
 
 ### 2026-11-10 — F14 recovery for delivered but unclaimed jobs
 
@@ -56,7 +62,7 @@ Complete and verify one small feature at a time. Update this file in the same ch
 - Added F14_0001_durable_planning with strict schemas, unique deduplication/retry indexes and legacy queued-job backfill. Prior checksums remain unchanged; failure-injection test proves recovery after interrupted index creation.
 - Checks: 60 planning/scene/compilation/settings regression tests passed; final 14 job tests and eight deletion tests passed, including migration recovery, retry ETag invalidation and hourly retry quotas. Real local Inngest delivery/duplicate test invoked the deterministic provider exactly once. Chrome retry-after-reload, settings/approval, duration badge, 320/390px and zero-page-error checks passed. TypeScript, lint and production build passed. No paid provider calls were made by these tests.
 - Dependency review: audit reports 20 moderate and four high entries, including propagated entries. New high findings are Inngest's Zod dependency and the development CLI's archive dependency; compatible follow-redirects update applied. This is a local test milestone; production deployment requires advisory resolution/mitigation. See the [F14 implementation guide](docs/implementation/F14_Durable_Jobs.md), [broker report](docs/implementation/F14-inngest-verification.json) and [browser report](docs/implementation/F14-browser-verification.json).
-- Atlas migration applied and independently verified on 2026-10-31. Local app, broker and workers passed readiness then; restarted on 2026-11-10 after session interruption. Broker persistence is ignored by Git, including when started through npm. On 2026-11-10: app PID 36780, broker PID 34700, dispatcher PID 21824 and cleanup PID 33168; sign-in and broker health return 200, anonymous projects/catalog return 401. Stop for owner testing before F15.
+- Atlas migration applied and independently verified on 2026-10-31. Local app, broker and workers passed readiness then; restarted on 2026-11-10 after session interruption. Broker persistence is ignored by Git, including when started through npm. On 2026-11-10: app PID 36780, broker PID 34700, dispatcher PID 21824 and cleanup PID 33168; sign-in and broker health return 200, anonymous projects/catalog return 401. Owner manual QA passed on 2026-11-10; stale retry UI follow-up verified. F15 awaits owner authorization.
 
 ### 2026-10-29 — F13 duration badge refresh
 

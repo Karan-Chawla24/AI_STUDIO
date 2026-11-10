@@ -1,0 +1,8 @@
+{
+  "ideaRetry": "hidden after save and reload",
+  "storyboardRetry": "hidden after save and reload",
+  "delayedJobRefresh": "does not expose stale retry",
+  "serverStaleGuard": "preserved",
+  "pageErrors": [],
+  "providerCalls": 0
+}
