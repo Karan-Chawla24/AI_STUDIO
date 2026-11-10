@@ -26,6 +26,8 @@ Inngest functions use two retries for infrastructure invocation failures and con
 
 Planning execution leases last three minutes and heartbeat every 30 seconds. The existing provider adapter has a two-minute request timeout. Heartbeats require matching holder/epoch, RUNNING state and an unexpired lease. Finalization also requires an unexpired matching lease. A worker that loses its lease cannot install output.
 
+Recovery also checks active QUEUED jobs whose outbox event was delivered at least five minutes ago. If no consumer inbox, step or provider-call evidence exists, it transactionally marks the job FAILED with DISPATCH_NOT_CLAIMED, releases the project and terminalizes accepted receipts. The owner can use the normal bounded retry, which creates a new job/event ID. Late delivery of the failed job cannot call the provider. A concurrent claim either wins or conflicts with recovery; recorded execution evidence is held for operator review instead of being declared safe. Recent deliveries and undelivered events retain normal queue handling.
+
 Recovery marks expired RUNNING jobs REQUIRES_ATTENTION, changes SENT provider journals to OUTCOME_UNKNOWN, and retains project admission and the accepted receipt. It does not repeat the provider call. A delayed original response is fenced. Successful completed proposal/snapshot records remain immutable and are never overwritten by retries.
 
 Queued cancellation is terminal before any call. Running cancellation is cooperative: the flag and finalizer conflict on the same job transaction. When cancellation commits first, a later successful response cannot mark the job SUCCEEDED. Existing project deletion fences also prevent resurrection.
@@ -82,7 +84,7 @@ Set `INNGEST_DEV=http://127.0.0.1:8288` locally. Use the pinned CLI with persist
 
 For cloud deployment, remove INNGEST_DEV, configure INNGEST_EVENT_KEY and INNGEST_SIGNING_KEY, register `/api/inngest`, and verify signatures/hosting timeouts. Inngest's SDK owns webhook signature validation; the route is not a user-session endpoint. Local unsigned mode must not be exposed publicly. Cloud keys were not requested or used for this feature.
 
-`jobs:status` reports pending count, oldest pending age and uncertain-job count without user content. An age over five minutes needs operator attention; no alert delivery integration is implemented. The persistent local broker and MongoDB must both be backed up for local restart recovery. Do not discard broker storage and assume already acknowledged events will automatically reappear.
+`jobs:status` reports pending count, oldest pending age, total active queued jobs, overdue acknowledged-but-unclaimed jobs (unclaimedDelivered), and uncertain-job count without user content. An age over five minutes needs operator attention; no alert delivery integration is implemented. The persistent local broker and MongoDB must both be backed up for local restart recovery. Do not discard broker storage and assume already acknowledged events will automatically reappear.
 
 Reference: [Inngest local development](https://www.inngest.com/docs/local-development), [Next.js integration](https://www.inngest.com/docs/getting-started/nextjs-quick-start).
 

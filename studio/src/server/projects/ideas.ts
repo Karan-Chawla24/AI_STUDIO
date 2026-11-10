@@ -1,4 +1,4 @@
-import {enqueueJob,dispatchOutbox,type Attempt} from "../jobs/outbox";
+import {enqueueJob,dispatchOutbox,unclaimedDeliveryPipeline,unclaimedDeliveryTimeoutMs,type Attempt,type Outbox} from "../jobs/outbox";
 import {requireJobsMigration} from "../jobs/schema";
 import {requireCompileMigration} from "./compile-schema";
 import {generateLayouts,compileStoryboard,snapshotHash} from "./compiler";
@@ -174,9 +174,21 @@ export async function runIdea(c:DatabaseConnection,id:string,provider?:typeof ge
 }
 export async function reconcileIdeas(c:DatabaseConnection) {
  await requireIdeasMigration(c.db);
+ // Broker acknowledgement is not a consumer claim. Fail safely after a grace
+ // period instead of resending an ID the broker may still deduplicate.
+ const unclaimed=await c.db.collection<IdeaJob>("generationJobs").aggregate<IdeaJob>([...unclaimedDeliveryPipeline(),{$limit:50}]).toArray();
+ for(const row of unclaimed)await inTransaction(c.client,async session=>{
+  const job=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:row._id,state:"QUEUED",active:true},{session});if(!job)return;
+  const event=await c.db.collection<Outbox>("outboxEvents").findOne({_id:job._id,aggregateId:job._id,state:"DELIVERED",deliveredAt:{$type:"date",$lte:new Date(Date.now()-unclaimedDeliveryTimeoutMs)}},{session});if(!event)return;
+  const evidence=await c.db.collection("providerCalls").findOne({jobId:job._id},{session})||await c.db.collection("jobSteps").findOne({jobId:job._id},{session})||await c.db.collection("inboxEvents").findOne({consumer:"planning-v1",eventId:event._id},{session});
+  if(evidence){await finish(c,job,"REQUIRES_ATTENTION",{code:"PROVIDER_OUTCOME_UNKNOWN",message:"This queued job has execution evidence and needs operator review."},session);return;}
+  // finish writes the same job as the claim transaction, so a racing consumer
+  // either wins the claim or sees a terminal job and cannot call the provider.
+  await finish(c,job,"FAILED",{code:"DISPATCH_NOT_CLAIMED",message:"Background processing did not start. You can retry this request."},session);
+ });
  const expired=await c.db.collection<IdeaJob>("generationJobs").find({state:"RUNNING","lease.expiresAt":{$lte:new Date()}}).limit(50).toArray();
  for(const row of expired) await inTransaction(c.client,async session=>{const job=await c.db.collection<IdeaJob>("generationJobs").findOne({_id:row._id,state:"RUNNING","lease.expiresAt":{$lte:new Date()}},{session});if(!job)return;await c.db.collection("providerCalls").updateOne({jobId:job._id,state:"SENT"},{$set:{state:"OUTCOME_UNKNOWN",updatedAt:new Date()}},{session});await finish(c,job,"REQUIRES_ATTENTION",{code:"PROVIDER_OUTCOME_UNKNOWN",message:"The worker stopped before recording the response. Operator review is required."},session);});
- return expired.length;
+ return expired.length+unclaimed.length;
 }
 export async function drainIdeas(c:DatabaseConnection,provider?:typeof generateIdeas) {
  await reconcileIdeas(c);

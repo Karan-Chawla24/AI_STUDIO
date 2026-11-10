@@ -5,7 +5,7 @@ import {MongoMemoryReplSet} from "mongodb-memory-server";
 import {connectDatabase,type DatabaseConnection} from "../src/server/db/client";
 import {provisionProfile} from "../src/server/auth/profile";
 import {migrateJobs,verifyJobs} from "../src/server/jobs/schema";
-import {dispatchOutbox,type Outbox} from "../src/server/jobs/outbox";
+import {dispatchOutbox,jobHealth,unclaimedDeliveryTimeoutMs,type Outbox} from "../src/server/jobs/outbox";
 import {admitIdeas,runIdea,cancelIdea,retryIdea,reconcileIdeas,settleUnknown,heartbeatIdea} from "../src/server/projects/ideas";
 import {createProject,readProject} from "../src/server/projects/service";
 import {validateCreate,ProjectError} from "../src/server/projects/model";
@@ -44,6 +44,29 @@ test("a retry advances its parent's ETag version and cannot branch after child s
  await assert.rejects(retryIdea(c,owner,a.p.id,a.id,parent.resourceVersion,randomUUID(),true),{code:"JOB_ALREADY_RETRIED"});
 });
 test("HTTP retry requires authentication, CSRF, idempotency and returns a linked accepted job",async()=>{const a=await admit();await cancelIdea(c,owner,a.p.id,a.id,1,randomUUID());const j=await job(a.id),config={origin:"http://localhost:3001",secure:false,secret:"a".repeat(40)},identity={user,session:{id:"jobs-session",userId:owner}} as never;const token=csrfToken(identity,config.secret),url=`${config.origin}/api/v1/projects/${a.p.id}/jobs/${a.id}/retry`;const req=(headers:Record<string,string>={})=>new Request(url,{method:"POST",headers:{"Content-Type":"application/json",...headers},body:JSON.stringify({expectedVersion:j.resourceVersion})});const deps={connection:c,identity,config};assert.equal((await ideasRequest(req(),a.p.id,["jobs",a.id,"retry"],{...deps,identity:null})).status,401);assert.equal((await ideasRequest(req(),a.p.id,["jobs",a.id,"retry"],deps)).status,403);assert.equal((await ideasRequest(req({Origin:config.origin,"X-CSRF-Token":token}),a.p.id,["jobs",a.id,"retry"],deps)).status,428);const r=await ideasRequest(req({Origin:config.origin,"X-CSRF-Token":token,"Idempotency-Key":randomUUID()}),a.p.id,["jobs",a.id,"retry"],deps);assert.equal(r.status,202);assert.equal((await r.json()).data.retryOfJobId,a.id);});
+test("acknowledged work survives three pre-claim failures as a safe retryable failure",async()=>{
+ await c.db.collection<IdeaJob>("generationJobs").updateMany({},{$set:{createdAt:new Date(Date.now()-7200000)}});
+ const a=await admit();await c.db.collection<Outbox>("outboxEvents").updateMany({_id:{$ne:a.id}},{$set:{state:"DELIVERED",deliveredAt:new Date()}});
+ await dispatchOutbox(c.db,async()=>({accepted:true}));let calls=0;
+ const unavailable={...c,db:{collection(){throw Error("database unavailable before claim");}}} as unknown as DatabaseConnection;
+ for(let n=0;n<3;n++)await assert.rejects(runIdea(unavailable,a.id,async()=>{calls++;return output();},a.id),/database unavailable/);
+ await c.db.collection<Outbox>("outboxEvents").updateOne({_id:a.id},{$set:{deliveredAt:new Date(Date.now()-unclaimedDeliveryTimeoutMs-1000)}});
+ assert.equal((await jobHealth(c.db)).unclaimedDelivered,1);assert.equal((await jobHealth(c.db)).pending,0);
+ await Promise.all([reconcileIdeas(c),reconcileIdeas(c)]);
+ const failed=await job(a.id);assert.equal(failed.state,"FAILED");assert.equal(failed.error?.code,"DISPATCH_NOT_CLAIMED");assert.equal(failed.active,false);assert.equal(failed.unsafeToRetry,false);assert.equal((await readProject(c,owner,a.p.id)).activeJobId,null);
+ assert.equal(await c.db.collection("idempotencyRecords").countDocuments({operationId:a.id,state:"ACCEPTED"}),0);
+ await runIdea(c,a.id,async()=>{calls++;return output();},a.id);assert.equal(calls,0);assert.equal(await c.db.collection("providerCalls").countDocuments({jobId:a.id}),0);assert.equal(await c.db.collection("inboxEvents").countDocuments({eventId:a.id}),0);assert.equal((await jobHealth(c.db)).unclaimedDelivered,0);
+ const retry=await retryIdea(c,owner,a.p.id,a.id,failed.resourceVersion,randomUUID(),true),id=String(retry.data.jobId);
+ await Promise.all([runIdea(c,id,async()=>{calls++;return output();},id),runIdea(c,id,async()=>{calls++;return output();},id)]);assert.equal(calls,1);assert.equal((await job(id)).state,"SUCCEEDED");
+});
+test("unclaimed recovery respects delivery grace and races safely with a consumer claim",async()=>{
+ const a=await admit();await c.db.collection<Outbox>("outboxEvents").updateOne({_id:a.id},{$set:{state:"DELIVERED",deliveredAt:new Date()}});
+ await reconcileIdeas(c);assert.equal((await job(a.id)).state,"QUEUED");assert.equal((await jobHealth(c.db)).unclaimedDelivered,0);
+ await c.db.collection<Outbox>("outboxEvents").updateOne({_id:a.id},{$set:{deliveredAt:new Date(Date.now()-unclaimedDeliveryTimeoutMs-1000)}});
+ let calls=0;await Promise.all([reconcileIdeas(c),runIdea(c,a.id,async()=>{calls++;return output();},a.id)]);
+ const result=await job(a.id);assert.ok(["SUCCEEDED","FAILED"].includes(result.state));assert.equal(calls,result.state==="SUCCEEDED"?1:0);assert.equal((await readProject(c,owner,a.p.id)).activeJobId,null);
+ const pending=await admit();await c.db.collection<IdeaJob>("generationJobs").updateOne({_id:pending.id},{$set:{createdAt:new Date(0)}});await reconcileIdeas(c);assert.equal((await job(pending.id)).state,"QUEUED");await cancelIdea(c,owner,pending.p.id,pending.id,1,randomUUID());
+});
 test("linked retries cannot bypass the owner's hourly planning limit",async()=>{
  await c.db.collection<IdeaJob>("generationJobs").updateMany({},{$set:{createdAt:new Date(Date.now()-7200000)}});
  const a=await admit();await cancelIdea(c,owner,a.p.id,a.id,1,randomUUID());const j=await job(a.id);

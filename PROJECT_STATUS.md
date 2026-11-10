@@ -43,6 +43,12 @@ Complete and verify one small feature at a time. Update this file in the same ch
 
 ## Change log
 
+### 2026-11-10 — F14 recovery for delivered but unclaimed jobs
+
+- Recovery now detects active queued jobs still unclaimed five minutes after broker acknowledgement. With no inbox/step/provider evidence, it atomically marks them FAILED (DISPATCH_NOT_CLAIMED), releases project admission and terminalizes receipts so the owner can explicitly retry with a new job/event ID. Late delivery and concurrent claims retain existing deduplication and transaction fencing; inconsistent execution evidence is held for operator review.
+- Health now reports active queued jobs and overdue unclaimed deliveries, even when the pending outbox count is zero. Recent deliveries and pending outbox events are not prematurely failed.
+- All 16 job tests passed, including three pre-claim failures, concurrent reconciliation, late delivery with zero provider calls, successful deduplicated explicit retry, delivery grace and a claim/recovery race. TypeScript, targeted ESLint and production build passed. Local app and dispatcher restarted with the fix. No migration or paid provider call is required.
+
 ### 2026-10-31 — F14 durable planning jobs and local Inngest
 
 - Owner authorized progression and local Inngest testing. Added atomic job/outbox/attempt admission, epoch-fenced dispatch with retry backoff, transactional consumer deduplication, planning step journals, execution heartbeat/recovery and explicit operator settlement of unknown outcomes. Provider calls are never automatically resent after uncertainty.

@@ -7,6 +7,14 @@ export type DispatchEvent={id:string;name:"studio/planning.requested";data:{even
 type Lease={holder:string|null;epoch:number;expiresAt:Date|null};
 export type Outbox={_id:string;aggregateId:string;state:"PENDING"|"CLAIMED"|"DELIVERED";attempts:number;nextAttemptAt:Date;lease:Lease;deliveredAt:Date|null;createdAt:Date};
 export type Attempt={_id:string;ownerId:string;projectId:string;rootId:string;parentId:string|null;attempt:number;createdAt:Date};
+export const unclaimedDeliveryTimeoutMs=5*60*1000;
+export function unclaimedDeliveryPipeline(now=new Date()){
+ return [
+  {$match:{state:"QUEUED",active:true}},
+  {$lookup:{from:"outboxEvents",localField:"_id",foreignField:"_id",as:"delivery"}},
+  {$match:{delivery:{$elemMatch:{state:"DELIVERED",deliveredAt:{$type:"date",$lte:new Date(now.getTime()-unclaimedDeliveryTimeoutMs)}}}}},
+ ];
+}
 export async function enqueueJob(db:Db,job:IdeaJob,session:ClientSession,parent?:Attempt){
  await requireJobsMigration(db);
  await db.collection<Attempt>("jobAttempts").insertOne({_id:job._id,ownerId:job.ownerId,projectId:job.projectId,rootId:parent?.rootId??job._id,parentId:parent?._id??null,attempt:(parent?.attempt??0)+1,createdAt:job.createdAt},{session});
@@ -29,4 +37,4 @@ export async function dispatchOutbox(db:Db,send:(event:DispatchEvent)=>Promise<u
  }
  return delivered;
 }
-export async function jobHealth(db:Db){const now=Date.now(),oldest=await db.collection<Outbox>("outboxEvents").findOne({state:{$ne:"DELIVERED"}},{sort:{createdAt:1}});return {pending:await db.collection("outboxEvents").countDocuments({state:{$ne:"DELIVERED"}}),oldestPendingSeconds:oldest?Math.floor((now-oldest.createdAt.getTime())/1000):0,attention:await db.collection("generationJobs").countDocuments({state:"REQUIRES_ATTENTION",unsafeToRetry:true})};}
+export async function jobHealth(db:Db){const now=Date.now(),oldest=await db.collection<Outbox>("outboxEvents").findOne({state:{$ne:"DELIVERED"}},{sort:{createdAt:1}});const stalled=await db.collection("generationJobs").aggregate([...unclaimedDeliveryPipeline(new Date(now)),{$count:"count"}]).next();return {pending:await db.collection("outboxEvents").countDocuments({state:{$ne:"DELIVERED"}}),oldestPendingSeconds:oldest?Math.floor((now-oldest.createdAt.getTime())/1000):0,queued:await db.collection("generationJobs").countDocuments({state:"QUEUED",active:true}),unclaimedDelivered:stalled?.count??0,attention:await db.collection("generationJobs").countDocuments({state:"REQUIRES_ATTENTION",unsafeToRetry:true})};}
